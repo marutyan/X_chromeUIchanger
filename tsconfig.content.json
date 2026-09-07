@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "none",
+    "outFile": "dist/content.js",
+    "noEmitOnError": true
+  },
+  "files": [
+    "src/types/chrome.d.ts",
+    "src/shared/layout-metrics.ts",
+    "src/content/content-targets.ts",
+    "src/content/selectors.ts",
+    "src/content/observers.ts",
+    "src/content/layout-controller.ts",
+    "src/content/index.ts"
+  ]
+}

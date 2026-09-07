@@ -1,0 +1,16 @@
+{
+  "name": "x-chrome-ui-changer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Responsive wide layout for X (formerly Twitter) desktop.",
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "typecheck": "tsc -p tsconfig.content.json --noEmit && tsc -p tsconfig.popup.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "build:ts": "tsc -p tsconfig.content.json && tsc -p tsconfig.popup.json",
+    "build": "npm run clean && npm run build:ts && node scripts/copy-static.mjs",
+    "test": "npm run build && tsc -p tsconfig.test.json && node --check dist/content.js && node --check dist/popup.js && node --test .test-dist/*.test.js"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3"
+  }
+}

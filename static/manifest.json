@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "X Responsive Layout",
+  "version": "0.1.0",
+  "description": "Responsive wide layout for X (formerly Twitter) desktop.",
+  "permissions": ["storage"],
+  "action": {
+    "default_title": "X Responsive Layout",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
