@@ -1,0 +1,8 @@
+node_modules
+node_modules/
+dist/
+.test-dist/
+.playwright-mcp/
+scratch/
+*.log
+.DS_Store

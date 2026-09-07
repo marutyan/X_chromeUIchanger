@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "none",
+    "outFile": "dist/popup.js",
+    "noEmitOnError": true
+  },
+  "files": [
+    "src/types/chrome.d.ts",
+    "src/popup/popup.ts"
+  ]
+}
