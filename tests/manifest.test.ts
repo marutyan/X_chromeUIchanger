@@ -131,10 +131,16 @@ namespace ManifestTests {
       "content.css should respect compact layout for zoom-in responsive safety",
     );
 
-    // 13. 左ナビ (header[role=banner]) が左端に固定され、ズームアウト時に中央へ流れないこと
+    // 13. 左ナビ (header[role=banner]) は伸長せず左端に固定し、幅は X のナビ列の内容幅に任せること
+    //     （固定 px 幅を与えると X の列幅 275px/88px と食い違い、ナビが主カラムに重なる）
     assert.ok(
-      /header\[role="banner"\][^\{]*\{[^}]*flex-grow\s*:\s*0\s*!important/i.test(cssContent),
-      "content.css must set flex-grow: 0 on header to dock it to the left edge and prevent panel drifting on zoom-out",
+      /header\[role="banner"\][^\{]*\{[^}]*flex\s*:\s*0 0 auto\s*!important/i.test(cssContent),
+      "content.css must set flex: 0 0 auto on header so it docks left without growing",
+    );
+    assert.equal(
+      /header\[role="banner"\][^\{]*\{[^}]*width\s*:\s*\d+px/i.test(cssContent),
+      false,
+      "content.css must not force a fixed pixel width on header; X's own nav column width must decide it",
     );
 
     // 14. ズームイン時・狭画面時 (max-width: 1000px) にサイドバーを非表示にするルールが存在すること

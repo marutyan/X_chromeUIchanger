@@ -1,16 +1,8 @@
 /* X_chromeUIchanger - Content Styles */
 
 html[data-xcuic-enabled="true"] {
-  --xcuic-header-width: 300px;
   --xcuic-sidebar-width: 350px;
   --xcuic-gap: 30px;
-}
-
-/* ズームイン時・中画面時: 左ナビが 68px アイコンのみに切り替わる画面幅 */
-@media (max-width: 1280px) {
-  html[data-xcuic-enabled="true"] {
-    --xcuic-header-width: 68px;
-  }
 }
 
 /* 画面全体の横スクロールを防止
@@ -36,16 +28,21 @@ html[data-xcuic-enabled="true"] .xcuic-app-row {
   box-sizing: border-box !important;
 }
 
-/* 左ナビ (header): 左端に固定 (ズームアウト時の移動防止、300pxでメニュー項目を表示) */
+/* 左ナビ (header): 幅は X のナビ列（ラベル付き 275px / アイコンのみ 88px、左余白 60px）の内容幅に任せ、
+   伸長だけを止めて左端に固定する。固定 px で上書きすると X の列幅と食い違い、ナビが主カラムに重なる。
+   align-items は X 標準の flex-end のまま、ナビ列を main の左隣に寄せる */
 html[data-xcuic-enabled="true"] header[role="banner"] {
-  flex-grow: 0 !important;
-  flex-shrink: 0 !important;
-  flex: 0 0 var(--xcuic-header-width, 300px) !important;
-  width: var(--xcuic-header-width, 300px) !important;
-  min-width: var(--xcuic-header-width, 300px) !important;
-  max-width: var(--xcuic-header-width, 300px) !important;
-  align-items: flex-start !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
   box-sizing: border-box !important;
+}
+
+/* X はナビ列（header 直下の div）の幅を 200ms かけて 88px ⇄ 275px に切り替える。
+   header の幅がこの列に追従する本レイアウトでは、遷移中だけナビが主カラムに重なるため遷移を止める */
+html[data-xcuic-enabled="true"] header[role="banner"] > div {
+  transition: none !important;
 }
 
 /* 左ナビ内部リンク・コンテナのテキスト見切れ防止 */

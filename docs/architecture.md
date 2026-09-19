@@ -55,8 +55,8 @@
 JavaScript は `document.documentElement` に `data-xcuic-enabled` と `data-xcuic-layout` 属性を設定するのみであり、CSS 変数の動的操作やインラインスタイル操作は行わない。カラム幅の実際の配分はすべて `content.css` の flex 規則が担う。
 
 1. **左ナビゲーション (`header[role="banner"]`)**:
-   - 幅は `--xcuic-header-width`（通常時 300px、画面幅 1280px 以下ではメディアクエリにより 68px）。
-   - `flex: 0 0 var(--xcuic-header-width, 300px)` により左端に固定する。
+   - `flex: 0 0 auto`、`width: auto` により、幅は X のナビ列の内容幅（ラベル付き 275px / アイコンのみ 88px に左余白 60px を加えた値）に任せ、伸長だけを止めて左端に固定する。
+   - 固定 px 幅を与えると X の列幅と食い違い、ナビ列が主カラムに重なるため、幅は上書きしない。X 標準の `align-items: flex-end` も維持し、ナビ列を `main` の左隣へ寄せる。
 2. **メイン領域 (`main[role="main"]`)**:
    - `flex: 1 1 0%`、`min-width: 0` により、残りの横幅を活用する。
 3. **メインラッパー (`.xcuic-main-wrapper`)**:
