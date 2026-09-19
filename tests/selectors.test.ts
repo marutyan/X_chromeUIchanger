@@ -300,6 +300,16 @@ namespace SelectorTests {
     Xcuic.tagLayoutTargets(main as unknown as HTMLElement);
 
     assert.equal(
+      rowWrapper.classList.contains("xcuic-tweet-row"),
+      true,
+      "アバター列とコンテンツ列を包含する行コンテナに xcuic-tweet-row が付与されるべき",
+    );
+    assert.equal(
+      avatarCol.classList.contains("xcuic-avatar-column"),
+      true,
+      "アバターを含む列に xcuic-avatar-column が付与されるべき",
+    );
+    assert.equal(
       contentCol.classList.contains("xcuic-tweet-content"),
       true,
       "アバターの兄弟であるコンテンツ列全体に xcuic-tweet-content が付与されるべき",
@@ -312,5 +322,13 @@ namespace SelectorTests {
       photoBlock.classList.contains("xcuic-tweet-photo"),
       true,
     );
+
+    // clearTargetClasses で新クラスも含めて消去されることを検証
+    Xcuic.clearTargetClasses(main as unknown as ParentNode);
+    assert.equal(rowWrapper.classList.contains("xcuic-tweet-row"), false);
+    assert.equal(avatarCol.classList.contains("xcuic-avatar-column"), false);
+    assert.equal(contentCol.classList.contains("xcuic-tweet-content"), false);
+    assert.equal(textBlock.classList.contains("xcuic-tweet-text"), false);
+    assert.equal(photoBlock.classList.contains("xcuic-tweet-photo"), false);
   });
 }

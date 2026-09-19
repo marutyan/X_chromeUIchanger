@@ -1,4 +1,8 @@
 namespace Xcuic {
+  /**
+   * DOM 要素の特定に使用するセレクタ文字列の定義集。
+   * X の構造変化に備え、探索用セレクタを一元管理します。
+   */
   export const SELECTORS = {
     MAIN: 'main[role="main"], main',
     HEADER: 'header[role="banner"]',
@@ -30,28 +34,51 @@ namespace Xcuic {
       'div[data-testid="articleDraft"]',
       'div[data-testid="note"]',
     ].join(","),
+    AVATAR: '[data-testid*="UserAvatar"], [data-testid*="Tweet-User-Avatar"]',
+    CELL_INNER_DIV: 'div[data-testid="cellInnerDiv"]',
+    SIGNIFICANT_MUTATION: [
+      'div[data-testid="primaryColumn"]',
+      'div[data-testid="sidebarColumn"]',
+      'div[data-testid="cellInnerDiv"]',
+      'main[role="main"]',
+      'main',
+    ].join(","),
   } as const;
 
-  export const TARGET_CLASSES = [
-    "xcuic-app-row",
-    "xcuic-main-wrapper",
-    "xcuic-primary-column",
-    "xcuic-sidebar-column",
-    "xcuic-timeline-wrapper",
-    "xcuic-tweet",
-    "xcuic-tweet-content",
-    "xcuic-tweet-text",
-    "xcuic-tweet-photo",
-    "xcuic-tweet-video",
-    "xcuic-card-wrapper",
-    "xcuic-media-wrapper",
-    "xcuic-quote-tweet",
-    "xcuic-media",
-    "xcuic-article",
-    "xcuic-article-content",
-    "xcuic-status-detail",
-  ] as const;
+  /**
+   * 拡張機能が CSS でスタイルを当てるために DOM へ付与するクラス名の一覧。
+   */
+  export const CLASS_NAMES = {
+    APP_ROW: "xcuic-app-row",
+    MAIN_WRAPPER: "xcuic-main-wrapper",
+    PRIMARY_COLUMN: "xcuic-primary-column",
+    SIDEBAR_COLUMN: "xcuic-sidebar-column",
+    TIMELINE_WRAPPER: "xcuic-timeline-wrapper",
+    TWEET: "xcuic-tweet",
+    TWEET_ROW: "xcuic-tweet-row",
+    AVATAR_COLUMN: "xcuic-avatar-column",
+    TWEET_CONTENT: "xcuic-tweet-content",
+    TWEET_TEXT: "xcuic-tweet-text",
+    TWEET_PHOTO: "xcuic-tweet-photo",
+    TWEET_VIDEO: "xcuic-tweet-video",
+    CARD_WRAPPER: "xcuic-card-wrapper",
+    MEDIA_WRAPPER: "xcuic-media-wrapper",
+    QUOTE_TWEET: "xcuic-quote-tweet",
+    MEDIA: "xcuic-media",
+    ARTICLE: "xcuic-article",
+    ARTICLE_CONTENT: "xcuic-article-content",
+    STATUS_DETAIL: "xcuic-status-detail",
+  } as const;
 
+  /**
+   * クラス消去および検証の対象となる全 CSS クラス名の配列。
+   * CLASS_NAMES の値から自動導出されます。
+   */
+  export const TARGET_CLASSES: readonly string[] = Object.values(CLASS_NAMES);
+
+  /**
+   * レイアウト要素のタグ付け処理結果を表す件数情報。
+   */
   export interface TaggedTargets {
     primaryColumnFound: boolean;
     sidebarColumnFound: boolean;
@@ -60,6 +87,9 @@ namespace Xcuic {
     mediaCount: number;
   }
 
+  /**
+   * DOM ルートからメインコンテンツ領域（main要素またはその代替コンテナ）を探索する。
+   */
   export function findMainRegion(root: ParentNode = document): HTMLElement | null {
     const mainEl = root.querySelector<HTMLElement>(SELECTORS.MAIN);
     if (
@@ -90,31 +120,34 @@ namespace Xcuic {
     return mainEl;
   }
 
+  /**
+   * 指定されたメインコンテンツ領域およびその配下の各レイアウト要素へクラスを付与する。
+   */
   export function tagLayoutTargets(mainRegion: HTMLElement): TaggedTargets {
     let primaryColumnFound = false;
     let sidebarColumnFound = false;
 
     const primaryColumn = mainRegion.querySelector<HTMLElement>(SELECTORS.PRIMARY_COLUMN);
     if (primaryColumn !== null) {
-      primaryColumn.classList.add("xcuic-primary-column");
+      primaryColumn.classList.add(CLASS_NAMES.PRIMARY_COLUMN);
       primaryColumnFound = true;
 
-      const mainWrapper = findMainWrapper(mainRegion, primaryColumn);
-      if (mainWrapper !== null) {
-        mainWrapper.classList.add("xcuic-main-wrapper");
+      const mainWrappers = findMainWrappers(mainRegion, primaryColumn);
+      for (const wrapper of mainWrappers) {
+        wrapper.classList.add(CLASS_NAMES.MAIN_WRAPPER);
       }
 
       const timelineWrapper = primaryColumn.querySelector<HTMLElement>(
         SELECTORS.TIMELINE_CONTAINER,
       );
       if (timelineWrapper !== null) {
-        timelineWrapper.classList.add("xcuic-timeline-wrapper");
+        timelineWrapper.classList.add(CLASS_NAMES.TIMELINE_WRAPPER);
       }
     }
 
     const sidebarColumn = mainRegion.querySelector<HTMLElement>(SELECTORS.SIDEBAR_COLUMN);
     if (sidebarColumn !== null) {
-      sidebarColumn.classList.add("xcuic-sidebar-column");
+      sidebarColumn.classList.add(CLASS_NAMES.SIDEBAR_COLUMN);
       sidebarColumnFound = true;
     }
 
@@ -124,7 +157,7 @@ namespace Xcuic {
     if (header !== null) {
       const appRow = findAppRow(header, mainRegion);
       if (appRow !== null) {
-        appRow.classList.add("xcuic-app-row");
+        appRow.classList.add(CLASS_NAMES.APP_ROW);
       }
     }
 
@@ -139,6 +172,9 @@ namespace Xcuic {
     };
   }
 
+  /**
+   * 付与されたすべての拡張機能用 CSS クラスを DOM 要素から消去する。
+   */
   export function clearTargetClasses(root: ParentNode): void {
     for (const className of TARGET_CLASSES) {
       for (const element of root.querySelectorAll<HTMLElement>(`.${className}`)) {
@@ -147,6 +183,9 @@ namespace Xcuic {
     }
   }
 
+  /**
+   * ヘッダーとメイン領域を包含する共通親コンテナ（appRow）を探索する。
+   */
   function findAppRow(header: HTMLElement, mainRegion: HTMLElement): HTMLElement | null {
     let current: HTMLElement | null = header.parentElement;
     while (current !== null && current !== document.body && current !== document.documentElement) {
@@ -158,17 +197,22 @@ namespace Xcuic {
     return null;
   }
 
-  function findMainWrapper(
+  /**
+   * primaryColumn と mainRegion の間にある中間ラッパー要素群を副作用なしで探索する。
+   */
+  export function findMainWrappers(
     mainRegion: HTMLElement,
     primaryColumn: HTMLElement,
-  ): HTMLElement | null {
+  ): HTMLElement[] {
+    const wrappers: HTMLElement[] = [];
     let current: HTMLElement | null = primaryColumn.parentElement;
-    let topmostWrapper: HTMLElement | null = null;
     while (current !== null && current !== mainRegion) {
-      current.classList.add("xcuic-main-wrapper");
-      topmostWrapper = current;
+      wrappers.push(current);
       current = current.parentElement;
     }
-    return topmostWrapper ?? (mainRegion.firstElementChild as HTMLElement | null);
+    if (wrappers.length === 0 && mainRegion.firstElementChild !== null) {
+      wrappers.push(mainRegion.firstElementChild as HTMLElement);
+    }
+    return wrappers;
   }
 }

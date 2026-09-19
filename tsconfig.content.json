@@ -7,9 +7,12 @@
   },
   "files": [
     "src/types/chrome.d.ts",
+    "src/shared/settings.ts",
     "src/shared/layout-metrics.ts",
-    "src/content/content-targets.ts",
     "src/content/selectors.ts",
+    "src/content/content-targets.ts",
+    "src/content/enabled-setting.ts",
+    "src/content/document-layout-state.ts",
     "src/content/observers.ts",
     "src/content/layout-controller.ts",
     "src/content/index.ts"

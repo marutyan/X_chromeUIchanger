@@ -1,49 +1,79 @@
 namespace Xcuic {
-  const DEFAULT_ENABLED = true;
-  const ENABLED_ATTRIBUTE = "data-xcuic-enabled";
-  const LAYOUT_ATTRIBUTE = "data-xcuic-layout";
-  const CSS_VARIABLES = [
-    "--xcuic-timeline-width",
-    "--xcuic-sidebar-width",
-    "--xcuic-canvas-width",
-  ] as const;
+  /**
+   * DOM から計測されたヘッダー幅・サイドバー幅・サイドバー表示状態およびビューポート幅。
+   */
+  export interface MeasuredLayoutContext {
+    viewportWidthPx: number;
+    headerWidthPx?: number | undefined;
+    sidebarWidthPx?: number | undefined;
+    hasSidebar: boolean;
+  }
 
+  /**
+   * DOM 要素からヘッダー幅、サイドバー幅、サイドバー表示有無、ビューポート幅を実測する純粋な計測関数。
+   */
+  export function measureLayoutContext(mainRegion: HTMLElement | null): MeasuredLayoutContext {
+    const viewportWidthPx = typeof window !== "undefined" && window.innerWidth
+      ? window.innerWidth
+      : (typeof document !== "undefined" ? document.documentElement.clientWidth : 0);
+
+    const headerEl = typeof document !== "undefined"
+      ? document.querySelector<HTMLElement>(SELECTORS.HEADER)
+      : null;
+    const headerWidthPx = headerEl && headerEl.offsetWidth > 0 ? headerEl.offsetWidth : undefined;
+
+    const sidebarEl = mainRegion?.querySelector<HTMLElement>(SELECTORS.SIDEBAR_COLUMN)
+      ?? (typeof document !== "undefined" ? document.querySelector<HTMLElement>(SELECTORS.SIDEBAR_COLUMN) : null);
+
+    const hasSidebar = sidebarEl !== null
+      ? (sidebarEl.offsetWidth > 0 && typeof getComputedStyle === "function" && getComputedStyle(sidebarEl).display !== "none")
+      : false;
+
+    const sidebarWidthPx = (sidebarEl && sidebarEl.offsetWidth > 0) ? sidebarEl.offsetWidth : undefined;
+
+    return {
+      viewportWidthPx,
+      headerWidthPx,
+      sidebarWidthPx,
+      hasSidebar,
+    };
+  }
+
+  /**
+   * DOMの監視、レイアウトモードの判定、DOMへの属性・クラス反映を統括するコントローラー。
+   */
   export class LayoutController {
     private mainRegion: HTMLElement | null = null;
     private resizeObserver: ResizeObserver | null = null;
     private enabled = false;
     private isCurrentlyWide = false;
+    private previousLayoutMode: LayoutMode | null = null;
     private readonly refreshObserver = new RefreshObserver(() => this.refresh());
-    private previousMetricsKey = "";
     private resizeAnimationFrameId: number | null = null;
+    private readonly documentLayoutState: DocumentLayoutState;
 
-    async initialize(): Promise<void> {
-      try {
-        if (typeof chrome !== "undefined" && chrome.storage?.local) {
-          const stored = await chrome.storage.local.get({ enabled: DEFAULT_ENABLED });
-          this.setEnabled(
-            typeof stored.enabled === "boolean" ? stored.enabled : DEFAULT_ENABLED,
-          );
-
-          chrome.storage.onChanged.addListener((changes, areaName) => {
-            if (areaName !== "local") {
-              return;
-            }
-
-            const nextEnabled = changes["enabled"]?.newValue;
-            if (typeof nextEnabled === "boolean") {
-              this.setEnabled(nextEnabled);
-            }
-          });
-          return;
-        }
-      } catch {
-        // Fallback for non-extension context or storage error
-      }
-
-      this.setEnabled(DEFAULT_ENABLED);
+    constructor(
+      private readonly settingSource: EnabledSettingSource,
+      documentLayoutState?: DocumentLayoutState,
+    ) {
+      this.documentLayoutState = documentLayoutState ?? new DocumentLayoutState();
     }
 
+    /**
+     * 設定情報源から初期値を読み込み、変更購読を開始する。
+     */
+    async initialize(): Promise<void> {
+      const initialEnabled = await this.settingSource.get();
+      this.setEnabled(initialEnabled);
+
+      this.settingSource.onChange((nextEnabled) => {
+        this.setEnabled(nextEnabled);
+      });
+    }
+
+    /**
+     * 有効化フラグを更新し、有効化・無効化のライフサイクル処理を実行する。
+     */
     setEnabled(enabled: boolean): void {
       if (this.enabled === enabled) {
         if (enabled) {
@@ -60,6 +90,9 @@ namespace Xcuic {
       }
     }
 
+    /**
+     * メイン領域の再探索、タグ付け、およびレイアウトメトリクス更新をトリガーする。
+     */
     refresh(): void {
       if (!this.enabled) {
         return;
@@ -79,34 +112,46 @@ namespace Xcuic {
       this.scheduleMetricsUpdate();
     }
 
+    /**
+     * 監視を開始し、初回のタグ付けと属性同期設定を単一同期処理内で行う。
+     */
     private enable(): void {
-      document.documentElement.setAttribute(ENABLED_ATTRIBUTE, "true");
       this.startWindowObserver();
       this.refreshObserver.start();
-      this.refresh();
+
+      const nextMainRegion = findMainRegion();
+      if (nextMainRegion !== null) {
+        this.attachToMainRegion(nextMainRegion);
+        tagLayoutTargets(nextMainRegion);
+      }
+
+      // 初回実測とモード決定を同期実行し、enabled属性とlayout属性を同時に反映して中間状態を解消する
+      const initialMode = this.computeLayoutMode();
+      this.isCurrentlyWide = (initialMode === "wide");
+      this.previousLayoutMode = initialMode;
+      this.documentLayoutState.apply(true, initialMode);
     }
 
+    /**
+     * 監視を停止し、付与した属性・クラスをすべて消去して初期状態へ戻す。
+     */
     private disable(): void {
       this.refreshObserver.stop();
       this.stopWindowObserver();
       this.detachFromMainRegion();
-      document.documentElement.removeAttribute(ENABLED_ATTRIBUTE);
-      document.documentElement.removeAttribute(LAYOUT_ATTRIBUTE);
-      document.documentElement.removeAttribute("data-xcuic-sidebar");
-      for (const variable of CSS_VARIABLES) {
-        document.documentElement.style.removeProperty(variable);
-      }
-      this.previousMetricsKey = "";
+      this.documentLayoutState.clear();
+      this.previousLayoutMode = null;
       this.isCurrentlyWide = false;
     }
 
+    /**
+     * documentElement のリサイズ監視を開始する。
+     */
     private startWindowObserver(): void {
       if (this.resizeObserver !== null) {
         return;
       }
 
-      // mainRegion ではなく documentElement（またはwindow）を監視
-      // 子要素の幅変更による無限フィードバックループ（画面の痙攣）を原理的に遮断
       const target = document.documentElement;
       this.resizeObserver = new ResizeObserver(() => {
         this.scheduleMetricsUpdate();
@@ -114,6 +159,9 @@ namespace Xcuic {
       this.resizeObserver.observe(target);
     }
 
+    /**
+     * リサイズ監視を停止し、保留中のアニメーションフレームをキャンセルする。
+     */
     private stopWindowObserver(): void {
       this.resizeObserver?.disconnect();
       this.resizeObserver = null;
@@ -124,11 +172,17 @@ namespace Xcuic {
       }
     }
 
+    /**
+     * 新しいメイン領域にアタッチする。
+     */
     private attachToMainRegion(mainRegion: HTMLElement): void {
       this.detachFromMainRegion();
       this.mainRegion = mainRegion;
     }
 
+    /**
+     * 現在のメイン領域からクラスを消去してデタッチする。
+     */
     private detachFromMainRegion(): void {
       if (this.mainRegion !== null) {
         clearTargetClasses(this.mainRegion);
@@ -136,6 +190,9 @@ namespace Xcuic {
       this.mainRegion = null;
     }
 
+    /**
+     * requestAnimationFrame を用いてレイアウトモード更新を間引いて予約する。
+     */
     private scheduleMetricsUpdate(): void {
       if (!this.enabled || this.resizeAnimationFrameId !== null) {
         return;
@@ -147,65 +204,35 @@ namespace Xcuic {
       });
     }
 
+    /**
+     * 現在の DOM 実測値から適用すべきレイアウトモードを算出する。
+     */
+    private computeLayoutMode(): LayoutMode {
+      const measured = measureLayoutContext(this.mainRegion);
+      return resolveLayoutMode(measured.viewportWidthPx, {
+        currentlyWide: this.isCurrentlyWide,
+        headerWidthPx: measured.headerWidthPx,
+        sidebarWidthPx: measured.sidebarWidthPx,
+        hasSidebar: measured.hasSidebar,
+      });
+    }
+
+    /**
+     * レイアウトモードを再計算し、前回と差異がある場合のみ documentElement の属性を更新する。
+     */
     private updateMetrics(): void {
       if (!this.enabled) {
         return;
       }
 
-      // ビューポート幅（ズーム時も縮小される）を基準にメトリクスを算出
-      const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+      const nextMode = this.computeLayoutMode();
+      this.isCurrentlyWide = (nextMode === "wide");
 
-      // DOM から header と sidebar の実測幅と存在を確認
-      const headerEl = document.querySelector<HTMLElement>(SELECTORS.HEADER);
-      const headerWidthPx = headerEl && headerEl.offsetWidth > 0 ? headerEl.offsetWidth : undefined;
-
-      const sidebarEl = this.mainRegion?.querySelector<HTMLElement>(SELECTORS.SIDEBAR_COLUMN)
-        ?? document.querySelector<HTMLElement>(SELECTORS.SIDEBAR_COLUMN);
-      const hasSidebar = sidebarEl !== null
-        ? (sidebarEl.offsetWidth > 0 && getComputedStyle(sidebarEl).display !== "none")
-        : false;
-      const sidebarWidthPx = (sidebarEl && sidebarEl.offsetWidth > 0) ? sidebarEl.offsetWidth : undefined;
-
-      const metrics = calculateLayoutMetrics(viewportWidth, {
-        currentlyWide: this.isCurrentlyWide,
-        headerWidthPx,
-        sidebarWidthPx,
-        hasSidebar,
-      });
-      this.isCurrentlyWide = !metrics.compact;
-
-      const metricsKey = [
-        metrics.timelineWidthPx,
-        metrics.sidebarWidthPx,
-        metrics.canvasWidthPx,
-        metrics.compact,
-      ].join(":");
-
-      if (metricsKey === this.previousMetricsKey) {
+      if (nextMode === this.previousLayoutMode) {
         return;
       }
-      this.previousMetricsKey = metricsKey;
-
-      document.documentElement.setAttribute(
-        LAYOUT_ATTRIBUTE,
-        metrics.compact ? "compact" : "wide",
-      );
-      document.documentElement.setAttribute(
-        "data-xcuic-sidebar",
-        hasSidebar ? "true" : "false",
-      );
-      document.documentElement.style.setProperty(
-        "--xcuic-timeline-width",
-        `${metrics.timelineWidthPx}px`,
-      );
-      document.documentElement.style.setProperty(
-        "--xcuic-sidebar-width",
-        `${metrics.sidebarWidthPx}px`,
-      );
-      document.documentElement.style.setProperty(
-        "--xcuic-canvas-width",
-        `${metrics.canvasWidthPx}px`,
-      );
+      this.previousLayoutMode = nextMode;
+      this.documentLayoutState.setLayoutMode(nextMode);
     }
   }
 }

@@ -6,9 +6,10 @@
     "noEmitOnError": true
   },
   "files": [
+    "src/shared/settings.ts",
     "src/shared/layout-metrics.ts",
-    "src/content/content-targets.ts",
     "src/content/selectors.ts",
+    "src/content/content-targets.ts",
     "tests/manifest.test.ts",
     "tests/layout-metrics.test.ts",
     "tests/selectors.test.ts"
