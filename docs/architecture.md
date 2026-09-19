@@ -69,7 +69,7 @@ JavaScript は `document.documentElement` に `data-xcuic-enabled` と `data-xcu
    - 画面幅 1000px 以下のメディアクエリ: サイドバーを `display: none` で非表示にし、タイムラインを全幅（`width: 100%`）にして衝突を防ぐ。
 6. **ツイートおよび内部コンテンツの扱い**:
    - 拡張はカラム幅（header / primaryColumn / sidebarColumn）だけを変え、ツイート内部（写真・動画・カード・引用・行/列構造）の幅は X の計算に任せる。X 自身がインラインスタイル等で計算するメディアサイズを上書きするとサムネイルの幅が 0 に潰れる等の不具合が生じるため、内部要素の強制全幅化は行わない。
-   - タグ付けは `classList` のみで行い、インラインスタイルは書き込まない。アバターの 40px サイズ維持、スレッド連結線の 2px 幅保護、およびアクションバーの均等配置のみを CSS で補助する。
+   - タグ付けは `classList` のみで行い、インラインスタイルは書き込まない。ツイート内部で CSS が触るのは本文テキストの折り返しとアクションバー（`div[role="group"]`）の均等配置だけで、アバターや連結線の寸法は固定しない（40px 固定は引用ツイート内の 24px アバターを潰していた）。
    - 長文記事（`.xcuic-article`, `.xcuic-status-detail`）は `max-width: 950px` に広げる。
 
 ## リサイズ・DOM変更の監視機構 (`observers.ts`, `layout-controller.ts`)

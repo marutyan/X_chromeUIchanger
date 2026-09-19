@@ -122,10 +122,17 @@ namespace ManifestTests {
       "content.css should expand tweet action bar to eliminate right-side whitespace gap",
     );
 
-    // 10. アバターの 40px 厳格保護ルールが存在すること（巨大化・ブラックアウト防止）
-    assert.ok(
-      /UserAvatar[^}]*width\s*:\s*40px\s*!important/i.test(cssContent),
-      "content.css must strictly lock avatar dimensions to 40px to prevent distortion and content squashing",
+    // 10. ツイート内のアバターや連結線の寸法を固定しないこと
+    //     （40px 固定は引用ツイート内の 24px アバターを潰し、画像が 0x0 になって消える）
+    assert.equal(
+      /UserAvatar[^}]*width\s*:\s*40px/i.test(cssContent),
+      false,
+      "content.css must not lock avatar size; quoted tweets use 24px avatars that collapse under a 40px lock",
+    );
+    assert.equal(
+      cssContent.includes('[style*="width: 2px"]'),
+      false,
+      "content.css must not override thread-line widths; X sizes tweet internals itself",
     );
 
     // 11. wide / compact モードに基づく相対レイアウト制御が存在すること
@@ -156,13 +163,7 @@ namespace ManifestTests {
       "content.css must hide sidebarColumn at max-width: 1000px to prevent layout crashing on zoom-in",
     );
 
-    // 14. スレッド連結線（リプライアバター下の2px縦線）の保護ルールが存在すること（巨大グレー四角化防止）
-    assert.ok(
-      /article\[data-testid="tweet"\]\s*:is\(div,\s*span\)\[style\*="width:\s*2px"\]/i.test(cssContent),
-      "content.css must protect thread connecting line with 2px width lock to prevent giant grey rectangle bug",
-    );
-
-    // 15. アバター直下のスレッド連結線に誤爆する無差別兄弟セレクタ (div:has(...) ~ div / + div) が存在しないこと
+    // 14. アバター直下のスレッド連結線に誤爆する無差別兄弟セレクタ (div:has(...) ~ div / + div) が存在しないこと
     assert.equal(
       /UserAvatar[^}]*~ div/i.test(cssContent),
       false,
@@ -174,13 +175,7 @@ namespace ManifestTests {
       "content.css must not use UserAvatar + div selector which corrupts thread connecting lines",
     );
 
-    // 16. アバターの上部固定 (align-self: flex-start) ルールが存在すること（垂直中央浮遊防止）
-    assert.ok(
-      /UserAvatar[^}]*align-self\s*:\s*flex-start\s*!important/i.test(cssContent),
-      "content.css must lock avatars to align-self: flex-start to prevent vertical centering bug",
-    );
-
-    // 17. --xcuic-max-timeline が出現しないこと
+    // 15. --xcuic-max-timeline が出現しないこと
     assert.equal(
       cssContent.includes("--xcuic-max-timeline"),
       false,

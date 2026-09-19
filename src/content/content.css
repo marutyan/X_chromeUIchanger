@@ -138,7 +138,7 @@ html[data-xcuic-enabled="true"][data-xcuic-layout="compact"]
 }
 
 /* ==========================================================================
-   2. タイムライン内部コンテナの全幅展開とアバターの表示維持
+   2. タイムライン内部コンテナの全幅展開
    ========================================================================== */
 
 /* X はツイート内部（メディア・引用・本文列）の幅を自身で計算するため、
@@ -164,48 +164,6 @@ html[data-xcuic-enabled="true"] button:has([data-testid="pillLabel"]) {
   width: auto !important;
   max-width: none !important;
   pointer-events: auto !important;
-}
-
-/* アバター: 40px に固定し、上部 (flex-start) に配置 */
-html[data-xcuic-enabled="true"]
-  :is(
-    article[data-testid="tweet"] [data-testid*="UserAvatar"],
-    article[data-testid="tweet"] [data-testid*="Tweet-User-Avatar"],
-    article[data-testid="tweet"] .tweet-avatar
-  ) {
-  width: 40px !important;
-  height: 40px !important;
-  min-width: 40px !important;
-  max-width: 40px !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-  border-radius: 50% !important;
-  box-sizing: border-box !important;
-  align-self: flex-start !important;
-}
-
-/* アバターの外側コンテナ（左列）: 上部揃えと横幅固定 */
-html[data-xcuic-enabled="true"]
-  :is(
-    article[data-testid="tweet"] div:has(> [data-testid*="UserAvatar"]),
-    article[data-testid="tweet"] div:has(> [data-testid*="Tweet-User-Avatar"]),
-    article[data-testid="tweet"] div:has(> .tweet-avatar)
-  ) {
-  align-self: flex-start !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-}
-
-/* スレッド連結線（リプライアバター下の縦線）: 2px 幅を維持 */
-html[data-xcuic-enabled="true"] article[data-testid="tweet"] :is(div, span)[style*="width: 2px"],
-html[data-xcuic-enabled="true"] article[data-testid="tweet"] :is(div, span)[style*="width:2px"],
-html[data-xcuic-enabled="true"] article[data-testid="tweet"] div[aria-hidden="true"][style*="background-color"] {
-  width: 2px !important;
-  min-width: 2px !important;
-  max-width: 2px !important;
-  flex-grow: 0 !important;
-  flex-shrink: 0 !important;
-  box-sizing: content-box !important;
 }
 
 /* ツイート本文テキスト */
