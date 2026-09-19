@@ -172,5 +172,24 @@ namespace ManifestTests {
       /UserAvatar[^}]*align-self\s*:\s*flex-start\s*!important/i.test(cssContent),
       "content.css must lock avatars to align-self: flex-start to prevent vertical centering bug",
     );
+
+    // 19. .xcuic-tweet-row の規則に align-items: flex-start !important が含まれること
+    assert.ok(
+      /\.xcuic-tweet-row[^\{]*\{[^}]*align-items\s*:\s*flex-start\s*!important/i.test(cssContent),
+      "content.css must include align-items: flex-start !important for .xcuic-tweet-row",
+    );
+
+    // 20. .xcuic-avatar-column に align-self: flex-start !important が適用されること
+    assert.ok(
+      /\.xcuic-avatar-column[^\{]*\{[^}]*align-self\s*:\s*flex-start\s*!important/i.test(cssContent),
+      "content.css must apply align-self: flex-start !important to .xcuic-avatar-column",
+    );
+
+    // 21. --xcuic-max-timeline が出現しないこと
+    assert.equal(
+      cssContent.includes("--xcuic-max-timeline"),
+      false,
+      "content.css must not contain --xcuic-max-timeline",
+    );
   });
 }
