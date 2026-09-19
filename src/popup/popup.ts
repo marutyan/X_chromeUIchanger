@@ -1,6 +1,4 @@
 namespace XcuicPopup {
-  const DEFAULT_ENABLED = true;
-
   function isBoolean(value: unknown): value is boolean {
     return typeof value === "boolean";
   }
@@ -13,15 +11,18 @@ namespace XcuicPopup {
       return;
     }
 
-    const stored = await chrome.storage.local.get({ enabled: DEFAULT_ENABLED });
-    const enabled = isBoolean(stored.enabled) ? stored.enabled : DEFAULT_ENABLED;
+    const stored = await chrome.storage.local.get({
+      [Xcuic.SETTING_KEY_ENABLED]: Xcuic.DEFAULT_ENABLED,
+    });
+    const storedValue = stored[Xcuic.SETTING_KEY_ENABLED];
+    const enabled = isBoolean(storedValue) ? storedValue : Xcuic.DEFAULT_ENABLED;
 
     toggle.checked = enabled;
     updateStatus(status, enabled);
 
     toggle.addEventListener("change", async () => {
       const nextEnabled = toggle.checked;
-      await chrome.storage.local.set({ enabled: nextEnabled });
+      await chrome.storage.local.set({ [Xcuic.SETTING_KEY_ENABLED]: nextEnabled });
       updateStatus(status, nextEnabled);
     });
   }

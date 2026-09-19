@@ -7,6 +7,7 @@
   },
   "files": [
     "src/types/chrome.d.ts",
+    "src/shared/settings.ts",
     "src/popup/popup.ts"
   ]
 }

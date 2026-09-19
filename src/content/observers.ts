@@ -1,4 +1,7 @@
 namespace Xcuic {
+  /**
+   * DOMの変更やURL遷移を監視し、レイアウト更新を適切にデバウンスしてトリガーする監視クラス。
+   */
   export class RefreshObserver {
     private mutationObserver: MutationObserver | null = null;
     private debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -6,6 +9,9 @@ namespace Xcuic {
 
     constructor(private readonly refresh: () => void) {}
 
+    /**
+     * DOM 変更監視を開始する。
+     */
     start(): void {
       if (this.mutationObserver !== null) {
         return;
@@ -33,6 +39,9 @@ namespace Xcuic {
       });
     }
 
+    /**
+     * DOM 変更監視を停止し、保留中のデバウンスタイマーを解除する。
+     */
     stop(): void {
       this.mutationObserver?.disconnect();
       this.mutationObserver = null;
@@ -43,6 +52,9 @@ namespace Xcuic {
       }
     }
 
+    /**
+     * 指定ミリ秒後に requestAnimationFrame を介して再描画処理をスケジュールする。
+     */
     schedule(delayMs = 200): void {
       if (this.debounceTimer !== null) {
         clearTimeout(this.debounceTimer);
@@ -57,6 +69,9 @@ namespace Xcuic {
     }
   }
 
+  /**
+   * MutationRecord にレイアウト再計算が必要な重要ノードの追加・削除が含まれるかを判定する。
+   */
   function hasSignificantElementMutation(record: MutationRecord): boolean {
     return (
       containsSignificantNode(record.addedNodes) ||
@@ -64,19 +79,15 @@ namespace Xcuic {
     );
   }
 
+  /**
+   * NodeList 内に SELECTORS.SIGNIFICANT_MUTATION に合致する要素が存在するかを検査する。
+   */
   function containsSignificantNode(nodes: NodeList): boolean {
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
       if (node && node.nodeType === Node.ELEMENT_NODE) {
         const el = node as HTMLElement;
-        const testId = el.getAttribute?.("data-testid") ?? "";
-        if (
-          testId === "primaryColumn" ||
-          testId === "sidebarColumn" ||
-          testId === "cellInnerDiv" ||
-          el.tagName === "MAIN" ||
-          el.getAttribute?.("role") === "main"
-        ) {
+        if (typeof el.matches === "function" && el.matches(SELECTORS.SIGNIFICANT_MUTATION)) {
           return true;
         }
       }
