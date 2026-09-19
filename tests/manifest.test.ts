@@ -76,52 +76,59 @@ namespace ManifestTests {
       "content.css should include protection rules for pill notification buttons",
     );
 
-    // 5. ツイート右側のコンテンツ列（Right Column）の全幅伸長ルール
-    assert.ok(
-      cssContent.includes('.xcuic-tweet-content'),
-      "content.css should include rules to expand tweet right column to full timeline width",
-    );
+    // 5. ツイート内部のメディア・行/列構造に対する上書きの非適用
+    //    （X が inline style で決める画像サイズを上書きするとサムネイルが幅 0 になる）
+    const forbiddenPatterns = [
+      "tweetPhoto",
+      "xcuic-media-wrapper",
+      "504px",
+      "object-fit",
+      ".xcuic-tweet-content",
+      ".xcuic-tweet-row",
+      ".xcuic-avatar-column",
+    ];
+    for (const pattern of forbiddenPatterns) {
+      assert.equal(
+        cssContent.includes(pattern),
+        false,
+        `content.css must not contain "${pattern}"; X が inline style で決める画像サイズを上書きするとサムネイルが幅 0 になる`,
+      );
+    }
 
-    // 6. メディア・写真の全幅追従ルール
-    assert.ok(
-      cssContent.includes('div[data-testid="tweetPhoto"] img'),
-      "content.css should expand tweet photo img elements to fit width",
-    );
-
-    // 7. アバター要素に対する width: auto などの強制破壊スタイルの非適用
+    // 6. アバター要素に対する width: auto などの強制破壊スタイルの非適用
     assert.equal(
       /UserAvatar[^}]*width\s*:\s*auto/i.test(cssContent),
       false,
       "content.css must not set width: auto on avatars, which collapses avatar dimensions and causes blackout",
     );
 
-    // 8. メインラッパーで space-between を使用しないこと（ズームアウト時のサイドバー吹き飛び防止）
+    // 7. メインラッパーで space-between を使用しないこと（ズームアウト時のサイドバー吹き飛び防止）
     assert.equal(
       /xcuic-main-wrapper[^}]*justify-content\s*:\s*space-between/i.test(cssContent),
       false,
       "content.css must not use space-between on main-wrapper, which forces sidebar to drift away from timeline on zoom-out",
     );
 
-    // 9. header[role="banner"] に margin-left: auto などの破壊的スタイルをあてず、X本来の左吸着Flexboxを維持すること
+    // 8. header[role="banner"] に margin-left: auto などの破壊的スタイルをあてず、X本来の左吸着Flexboxを維持すること
     assert.equal(
       /header\[role="banner"\][^\{]*\{[^}]*margin-left\s*:\s*auto/i.test(cssContent),
       false,
       "content.css must not set margin-left: auto on header, which breaks X standard responsive navigation and causes drifting",
     );
 
-    // 10. ツイート下部アクションバー (div[role=group]) の全幅化ルールが存在すること
+    // 9. ツイート下部アクションバー (div[role=group]) の全幅化ルールが存在すること
     assert.ok(
       /article\[data-testid="tweet"\]\s+div\[role="group"\]/i.test(cssContent),
       "content.css should expand tweet action bar to eliminate right-side whitespace gap",
     );
 
-    // 11. アバターの 40px 厳格保護ルールが存在すること（巨大化・ブラックアウト防止）
+    // 10. アバターの 40px 厳格保護ルールが存在すること（巨大化・ブラックアウト防止）
     assert.ok(
       /UserAvatar[^}]*width\s*:\s*40px\s*!important/i.test(cssContent),
       "content.css must strictly lock avatar dimensions to 40px to prevent distortion and content squashing",
     );
 
-    // 12. wide / compact モードに基づく相対レイアウト制御が存在すること
+    // 11. wide / compact モードに基づく相対レイアウト制御が存在すること
     assert.ok(
       cssContent.includes('[data-xcuic-layout="wide"]'),
       "content.css should apply expanded widths only under wide layout",
@@ -131,7 +138,7 @@ namespace ManifestTests {
       "content.css should respect compact layout for zoom-in responsive safety",
     );
 
-    // 13. 左ナビ (header[role=banner]) は伸長せず左端に固定し、幅は X のナビ列の内容幅に任せること
+    // 12. 左ナビ (header[role=banner]) は伸長せず左端に固定し、幅は X のナビ列の内容幅に任せること
     //     （固定 px 幅を与えると X の列幅 275px/88px と食い違い、ナビが主カラムに重なる）
     assert.ok(
       /header\[role="banner"\][^\{]*\{[^}]*flex\s*:\s*0 0 auto\s*!important/i.test(cssContent),
@@ -143,25 +150,19 @@ namespace ManifestTests {
       "content.css must not force a fixed pixel width on header; X's own nav column width must decide it",
     );
 
-    // 14. ズームイン時・狭画面時 (max-width: 1000px) にサイドバーを非表示にするルールが存在すること
+    // 13. ズームイン時・狭画面時 (max-width: 1000px) にサイドバーを非表示にするルールが存在すること
     assert.ok(
       /@media\s*\(max-width:\s*1000px\)[^\{]*\{[^}]*sidebarColumn[^}]*display\s*:\s*none\s*!important/i.test(cssContent),
       "content.css must hide sidebarColumn at max-width: 1000px to prevent layout crashing on zoom-in",
     );
 
-    // 15. 縦長画像・動画の過度な縦伸び防止ルール (max-height: min(70vh, 750px))
-    assert.ok(
-      /div\[data-testid="tweetPhoto"\]\s+img[^\{]*\{[^}]*max-height\s*:\s*min\(70vh,\s*750px\)\s*!important/i.test(cssContent),
-      "content.css must constrain portrait images with max-height: min(70vh, 750px) to prevent excessive vertical height",
-    );
-
-    // 16. スレッド連結線（リプライアバター下の2px縦線）の保護ルールが存在すること（巨大グレー四角化防止）
+    // 14. スレッド連結線（リプライアバター下の2px縦線）の保護ルールが存在すること（巨大グレー四角化防止）
     assert.ok(
       /article\[data-testid="tweet"\]\s*:is\(div,\s*span\)\[style\*="width:\s*2px"\]/i.test(cssContent),
       "content.css must protect thread connecting line with 2px width lock to prevent giant grey rectangle bug",
     );
 
-    // 17. アバター直下のスレッド連結線に誤爆する無差別兄弟セレクタ (div:has(...) ~ div / + div) が存在しないこと
+    // 15. アバター直下のスレッド連結線に誤爆する無差別兄弟セレクタ (div:has(...) ~ div / + div) が存在しないこと
     assert.equal(
       /UserAvatar[^}]*~ div/i.test(cssContent),
       false,
@@ -173,25 +174,13 @@ namespace ManifestTests {
       "content.css must not use UserAvatar + div selector which corrupts thread connecting lines",
     );
 
-    // 18. アバターの上部固定 (align-self: flex-start) ルールが存在すること（垂直中央浮遊防止）
+    // 16. アバターの上部固定 (align-self: flex-start) ルールが存在すること（垂直中央浮遊防止）
     assert.ok(
       /UserAvatar[^}]*align-self\s*:\s*flex-start\s*!important/i.test(cssContent),
       "content.css must lock avatars to align-self: flex-start to prevent vertical centering bug",
     );
 
-    // 19. .xcuic-tweet-row の規則に align-items: flex-start !important が含まれること
-    assert.ok(
-      /\.xcuic-tweet-row[^\{]*\{[^}]*align-items\s*:\s*flex-start\s*!important/i.test(cssContent),
-      "content.css must include align-items: flex-start !important for .xcuic-tweet-row",
-    );
-
-    // 20. .xcuic-avatar-column に align-self: flex-start !important が適用されること
-    assert.ok(
-      /\.xcuic-avatar-column[^\{]*\{[^}]*align-self\s*:\s*flex-start\s*!important/i.test(cssContent),
-      "content.css must apply align-self: flex-start !important to .xcuic-avatar-column",
-    );
-
-    // 21. --xcuic-max-timeline が出現しないこと
+    // 17. --xcuic-max-timeline が出現しないこと
     assert.equal(
       cssContent.includes("--xcuic-max-timeline"),
       false,

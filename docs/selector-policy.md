@@ -23,12 +23,7 @@ X開発チーム自身がE2Eテストやアクセシビリティ自動テスト�
 | サイドバー | `div[data-testid="sidebarColumn"]` | トレンド等の右カラム |
 | ツイート行 | `article[data-testid="tweet"]` | 各ツイートのルート要素 |
 | ツイート本文 | `div[data-testid="tweetText"]` | テキスト描画ブロック |
-| 写真メディア | `div[data-testid="tweetPhoto"]` | 静止画グリッドコンテナ |
-| 動画メディア | `div[data-testid="videoPlayer"]`, `div[data-testid="videoComponent"]` | 動画・GIFプレイヤー |
-| カード/リンク | `div[data-testid="card.wrapper"]` | OGPプレビュー枠 |
-| 引用ツイート | `div[data-testid="quoteTweet"]` (フォールバック含む) | 引用されたツイート枠 |
 | 記事/note | `article[data-testid="article"]`, `div[data-testid="article-container"]`, `div[data-testid="twitter-article"]`, `div[data-testid="articleDraft"]`, `div[data-testid="note"]` | X長文記事コンテンツ |
-| アバター要素 | `[data-testid*="UserAvatar"], [data-testid*="Tweet-User-Avatar"]` (`SELECTORS.AVATAR`) | ツイート行内でのアバター列とコンテンツ列の境界判定およびアバター保護 |
 | 重要変更ノード | `[data-testid="primaryColumn"]`, `[data-testid="sidebarColumn"]`, `[data-testid="cellInnerDiv"]`, `main`, `[role="main"]` (`SELECTORS.SIGNIFICANT_MUTATION`) | DOM変更監視でレイアウト再計算が必要な要素の追加・削除の判定 |
 
 ### 2. WAI-ARIA セマンティック属性 (`role`, `aria-label`)
@@ -53,21 +48,20 @@ Web標準規格であるARIA属性は、UIリニューアルが行われても�
 
 ### 4. フォールバックリストの結合
 
-新機能やA/Bテストでタグ名やテストIDが並行運用されるケースに備え、セレクタをカンマ区切りで結合して複数候補をサポートする（例: `TWEET_VIDEO`, `ARTICLE`, `QUOTE_TWEET`）。
+新機能やA/Bテストでタグ名やテストIDが並行運用されるケースに備え、セレクタをカンマ区切りで結合して複数候補をサポートする（例: `ARTICLE`, `TIMELINE_CONTAINER`, `SIGNIFICANT_MUTATION`）。
 
-## クラス名の情報源 (`CLASS_NAMES`) と付与クラス
+## クラス名の情報源 (`CLASS_NAMES`) と付与方針
 
 DOM に付与するクラス名は `CLASS_NAMES` 定数オブジェクトで一元管理し、無効化時のクラス一括消去に用いられる全クラス配列 `TARGET_CLASSES` もここから導出する。
 
-- `xcuic-tweet-row`: ツイート内部でアバター列と右側コンテンツ列を横並びに配置する行コンテナ要素。
-- `xcuic-avatar-column`: ツイート左側のアバターを内包する列コンテナ要素（`align-self: flex-start` により上部揃えを維持）。
+拡張はカラム幅（header / primaryColumn / sidebarColumn）だけを変え、ツイート内部の幅は X の計算に任せる。X 自身がインラインスタイルで計算するメディアサイズを上書きするとサムネイルが幅 0 に潰れる等の不具合が生じるため、ツイート内部のメディアや行・列コンテナに対するクラス付与および幅の上書きは行わず、ツイートルート（`xcuic-tweet`）とテキスト（`xcuic-tweet-text`）、記事要素等にのみ限定して付与を行う。
 
 ## Fail Closed 原則
 
 1. **未確定要素への非適用**:
    - `primaryColumn` や `tweet` が検出できない領域に対しては、レイアウト用クラス（`xcuic-*`）を付与しない。
-2. **未知のカード・コンポーネントの扱い**:
-   - ツイート内の認識できない独自ウィジェットは強制全幅化せず、標準のサイズ制約を崩さない。
+2. **ツイート内部レイアウトへの不干渉**:
+   - ツイート内のメディアやコンポーネントは強制全幅化せず、X 本来のサイズ計算と制約を崩さない。
 3. **過度なCSS優先度適用の限定**:
    - `!important` の使用は `xcuic-*` クラスが付与された要素および明示的な `data-testid` セレクタのみに限定し、ページ全体やモーダルに意図しない副作用を及ぼさない。
 

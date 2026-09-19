@@ -193,7 +193,7 @@ namespace SelectorTests {
     assert.equal(found, null);
   });
 
-  test("tagLayoutTargets: primary-column, sidebar-column, main-wrapper, timeline, メディア, 記事へクラスを付与する", () => {
+  test("tagLayoutTargets: primary-column, sidebar-column, main-wrapper, timeline, ツイート, 記事へクラスを付与する", () => {
     const main = new FakeElement("main", { role: "main" });
     const mainWrapper = main.append(new FakeElement("div"));
     const primaryColumn = mainWrapper.append(
@@ -203,29 +203,13 @@ namespace SelectorTests {
       new FakeElement("section", { role: "region" }),
     );
 
-    // ツイートとメディア要素
+    // ツイート要素
     const tweet = timeline.append(
       new FakeElement("article", { "data-testid": "tweet" }),
     );
     const tweetText = tweet.append(
       new FakeElement("div", { "data-testid": "tweetText" }),
     );
-    const tweetPhoto = tweet.append(
-      new FakeElement("div", { "data-testid": "tweetPhoto" }),
-    );
-    const tweetVideo = tweet.append(
-      new FakeElement("div", { "data-testid": "videoPlayer" }),
-    );
-    const cardWrapper = tweet.append(
-      new FakeElement("div", { "data-testid": "card.wrapper" }),
-    );
-    const quoteTweet = tweet.append(
-      new FakeElement("div", {
-        role: "link",
-        tabindex: "0",
-      }),
-    );
-    quoteTweet.append(new FakeElement("div", { "data-testid": "tweetText" }));
 
     // 記事要素
     const article = timeline.append(
@@ -244,7 +228,6 @@ namespace SelectorTests {
     assert.equal(result.sidebarColumnFound, true);
     assert.equal(result.tweetsCount, 1);
     assert.equal(result.articlesCount, 1);
-    assert.equal(result.mediaCount, 3); // photo(1) + video(1) + card(1)
 
     // クラス付与検証
     assert.equal(primaryColumn.classList.contains("xcuic-primary-column"), true);
@@ -253,14 +236,6 @@ namespace SelectorTests {
     assert.equal(timeline.classList.contains("xcuic-timeline-wrapper"), true);
     assert.equal(tweet.classList.contains("xcuic-tweet"), true);
     assert.equal(tweetText.classList.contains("xcuic-tweet-text"), true);
-    assert.equal(tweetPhoto.classList.contains("xcuic-tweet-photo"), true);
-    assert.equal(tweetPhoto.classList.contains("xcuic-media"), true);
-    assert.equal(tweetVideo.classList.contains("xcuic-tweet-video"), true);
-    assert.equal(tweetVideo.classList.contains("xcuic-media"), true);
-    assert.equal(cardWrapper.classList.contains("xcuic-card-wrapper"), true);
-    assert.equal(cardWrapper.classList.contains("xcuic-media"), true);
-    assert.equal(quoteTweet.classList.contains("xcuic-quote-tweet"), true);
-    assert.equal(quoteTweet.classList.contains("xcuic-media"), true);
     assert.equal(article.classList.contains("xcuic-article"), true);
     assert.equal(articleParagraph.classList.contains("xcuic-article-content"), true);
 
@@ -272,64 +247,56 @@ namespace SelectorTests {
     assert.equal(timeline.classList.contains("xcuic-timeline-wrapper"), false);
     assert.equal(tweet.classList.contains("xcuic-tweet"), false);
     assert.equal(tweetText.classList.contains("xcuic-tweet-text"), false);
-    assert.equal(tweetPhoto.classList.contains("xcuic-tweet-photo"), false);
-    assert.equal(tweetPhoto.classList.contains("xcuic-media"), false);
-    assert.equal(tweetVideo.classList.contains("xcuic-tweet-video"), false);
-    assert.equal(cardWrapper.classList.contains("xcuic-card-wrapper"), false);
-    assert.equal(quoteTweet.classList.contains("xcuic-quote-tweet"), false);
     assert.equal(article.classList.contains("xcuic-article"), false);
     assert.equal(articleParagraph.classList.contains("xcuic-article-content"), false);
   });
 
-  test("tagLayoutTargets: アバター列の兄弟要素（右側コンテンツ列全体）を正しく検出してxcuic-tweet-contentを付与する", () => {
+  test("tagLayoutTargets: 引用ツイートを含むツイートでも、tweet と tweetText 以外の内部要素へクラスが付かない", () => {
     const main = new FakeElement("main", { role: "main" });
     const primary = main.append(new FakeElement("div", { "data-testid": "primaryColumn" }));
     const timeline = primary.append(new FakeElement("section", { role: "region" }));
     const tweet = timeline.append(new FakeElement("article", { "data-testid": "tweet" }));
 
-    // X の実 DOM 構造: アバター列と右側コンテンツ列が横並び
+    // ツイート本体の行構造
     const rowWrapper = tweet.append(new FakeElement("div"));
     const avatarCol = rowWrapper.append(new FakeElement("div"));
-    avatarCol.append(new FakeElement("div", { "data-testid": "Tweet-User-Avatar" }));
+    const userAvatar = avatarCol.append(new FakeElement("div", { "data-testid": "Tweet-User-Avatar" }));
 
     const contentCol = rowWrapper.append(new FakeElement("div"));
     const headerBlock = contentCol.append(new FakeElement("div", { "data-testid": "User-Name" }));
-    const textBlock = contentCol.append(new FakeElement("div", { "data-testid": "tweetText" }));
-    const photoBlock = contentCol.append(new FakeElement("div", { "data-testid": "tweetPhoto" }));
+    const tweetText = contentCol.append(new FakeElement("div", { "data-testid": "tweetText" }));
+
+    // 引用ツイート（quote 内に UserAvatar と tweetText を配置）
+    const quoteWrapper = contentCol.append(new FakeElement("div", { role: "link", tabindex: "0" }));
+    const quoteAvatar = quoteWrapper.append(new FakeElement("div", { "data-testid": "UserAvatar" }));
+    const quoteText = quoteWrapper.append(new FakeElement("div", { "data-testid": "tweetText" }));
 
     Xcuic.tagLayoutTargets(main as unknown as HTMLElement);
 
-    assert.equal(
-      rowWrapper.classList.contains("xcuic-tweet-row"),
-      true,
-      "アバター列とコンテンツ列を包含する行コンテナに xcuic-tweet-row が付与されるべき",
-    );
-    assert.equal(
-      avatarCol.classList.contains("xcuic-avatar-column"),
-      true,
-      "アバターを含む列に xcuic-avatar-column が付与されるべき",
-    );
-    assert.equal(
-      contentCol.classList.contains("xcuic-tweet-content"),
-      true,
-      "アバターの兄弟であるコンテンツ列全体に xcuic-tweet-content が付与されるべき",
-    );
-    assert.equal(
-      textBlock.classList.contains("xcuic-tweet-text"),
-      true,
-    );
-    assert.equal(
-      photoBlock.classList.contains("xcuic-tweet-photo"),
-      true,
-    );
+    // tweet と tweetText には正しくクラスが付与されること
+    assert.equal(tweet.classList.contains("xcuic-tweet"), true);
+    assert.equal(tweetText.classList.contains("xcuic-tweet-text"), true);
 
-    // clearTargetClasses で新クラスも含めて消去されることを検証
-    Xcuic.clearTargetClasses(main as unknown as ParentNode);
-    assert.equal(rowWrapper.classList.contains("xcuic-tweet-row"), false);
-    assert.equal(avatarCol.classList.contains("xcuic-avatar-column"), false);
-    assert.equal(contentCol.classList.contains("xcuic-tweet-content"), false);
-    assert.equal(textBlock.classList.contains("xcuic-tweet-text"), false);
-    assert.equal(photoBlock.classList.contains("xcuic-tweet-photo"), false);
+    // tweet と tweetText 以外の内部要素のどれにも xcuic- クラスが付与されていないことを検証
+    const internalDivs = [
+      rowWrapper,
+      avatarCol,
+      userAvatar,
+      contentCol,
+      headerBlock,
+      quoteWrapper,
+      quoteAvatar,
+      quoteText,
+    ];
+    for (const div of internalDivs) {
+      for (const cls of Xcuic.TARGET_CLASSES) {
+        assert.equal(
+          div.classList.contains(cls),
+          false,
+          `内部要素にクラス ${cls} が付与されてはいけない`,
+        );
+      }
+    }
   });
 
   test("SIGNIFICANT_MUTATION: タグ名を限定せず主要ノードおよびmain要素・ロールを検出する", () => {

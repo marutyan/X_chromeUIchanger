@@ -138,8 +138,11 @@ html[data-xcuic-enabled="true"][data-xcuic-layout="compact"]
 }
 
 /* ==========================================================================
-   2. タイムライン内部の全幅展開とアバターの表示維持
+   2. タイムライン内部コンテナの全幅展開とアバターの表示維持
    ========================================================================== */
+
+/* X はツイート内部（メディア・引用・本文列）の幅を自身で計算するため、
+   拡張はカラム幅のみを変更し、ツイート内部の幅・配置の上書きは行わない */
 
 /* タイムライン内のコンテナ・ツイート自体の幅を 100% に統一 */
 html[data-xcuic-enabled="true"]
@@ -153,13 +156,6 @@ html[data-xcuic-enabled="true"]
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
-}
-
-/* ツイート行コンテナ: アバター列とコンテンツ列を横並びにする行コンテナ */
-html[data-xcuic-enabled="true"] .xcuic-tweet-row {
-  width: 100% !important;
-  max-width: 100% !important;
-  align-items: flex-start !important;
 }
 
 /* ピルボタンの保護 */
@@ -188,11 +184,6 @@ html[data-xcuic-enabled="true"]
   align-self: flex-start !important;
 }
 
-/* アバター列コンテナ: 上部揃えのみを適用（旧インラインstyleと同等の効果に限定） */
-html[data-xcuic-enabled="true"] .xcuic-avatar-column {
-  align-self: flex-start !important;
-}
-
 /* アバターの外側コンテナ（左列）: 上部揃えと横幅固定 */
 html[data-xcuic-enabled="true"]
   :is(
@@ -215,23 +206,6 @@ html[data-xcuic-enabled="true"] article[data-testid="tweet"] div[aria-hidden="tr
   flex-grow: 0 !important;
   flex-shrink: 0 !important;
   box-sizing: content-box !important;
-}
-
-/* ツイート右側のコンテンツ列 (ユーザー名・本文・メディア・アクションバー) の全幅伸長
-   ※ アバター直下のスレッド連結線への誤爆を避けるため div:has(...) ~ div / + div は使わない */
-html[data-xcuic-enabled="true"]
-  :where(
-    .xcuic-tweet-content,
-    .tweet-content,
-    article[data-testid="tweet"] div:has(> div[data-testid="tweetText"]),
-    article[data-testid="tweet"] div:has(> div[role="group"])
-  ) {
-  flex-grow: 1 !important;
-  flex-shrink: 1 !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
 }
 
 /* ツイート本文テキスト */
@@ -258,122 +232,8 @@ html[data-xcuic-enabled="true"]
 }
 
 /* ==========================================================================
-   3. メディア・カード要素の全幅展開
+   3. 投稿ボックス (Composer)
    ========================================================================== */
-
-/* メディア要素本体 */
-html[data-xcuic-enabled="true"]
-  :where(
-    div[data-testid="tweetPhoto"],
-    div[data-testid="videoPlayer"],
-    div[data-testid="videoComponent"],
-    div[data-testid="card.wrapper"],
-    div[data-testid="card.layoutLarge.media"],
-    div[data-testid="card.layoutSmall.media"],
-    .xcuic-media,
-    .xcuic-tweet-photo,
-    .xcuic-tweet-video,
-    .xcuic-card-wrapper,
-    .xcuic-quote-tweet
-  ) {
-  box-sizing: border-box !important;
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-/* カードおよびメディアを内包する中間ラッパー・リンクの全幅化
-   ※ ツイート全体の親divや行コンテナへの誤爆を避けるため、中間ラッパーには display:flex や max-height を指定しない */
-html[data-xcuic-enabled="true"]
-  :where(
-    .xcuic-media-wrapper,
-    article[data-testid="tweet"] a:has(> div[data-testid="tweetPhoto"]),
-    article[data-testid="tweet"] a:has(> div[data-testid="videoPlayer"]),
-    article[data-testid="tweet"] a:has(> div[data-testid="videoComponent"]),
-    article[data-testid="tweet"] a:has(> div[data-testid="card.wrapper"]),
-    article[data-testid="tweet"] div[style*="504px"],
-    article[data-testid="tweet"] div[style*="504 px"],
-    article[data-testid="tweet"] a[style*="504px"],
-    article[data-testid="tweet"] a[style*="504 px"]
-  ) {
-  max-width: 100% !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-}
-
-/* 写真・動画コンテナの最大高さ制御と中央揃え (縦長メディアの画面外はみ出しを防止) */
-html[data-xcuic-enabled="true"]
-  :is(
-    div[data-testid="tweetPhoto"],
-    div[data-testid="videoPlayer"],
-    div[data-testid="videoComponent"]
-  ) {
-  max-height: min(70vh, 750px) !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-}
-
-/* 写真コンテナ固有: 角丸クリッピング用 overflow と中央配置 */
-html[data-xcuic-enabled="true"] div[data-testid="tweetPhoto"] {
-  overflow: hidden !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-}
-
-/* 単一写真および動画要素自体の全幅フィットと画面内収容 (70vh制限とアスペクト比維持) */
-html[data-xcuic-enabled="true"]
-  :is(
-    div[data-testid="tweetPhoto"] img,
-    div[data-testid="videoPlayer"] video,
-    div[data-testid="videoComponent"] video
-  ) {
-  width: auto !important;
-  max-width: 100% !important;
-  height: auto !important;
-  max-height: min(70vh, 750px) !important;
-  object-fit: contain !important;
-  border-radius: 16px !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-}
-
-/* 複数画像グリッド（2枚〜4枚）はグリッドセル内を埋める */
-html[data-xcuic-enabled="true"]
-  article[data-testid="tweet"]
-  :is(div, a):has(~ :is(div, a) [data-testid="tweetPhoto"])
-  div[data-testid="tweetPhoto"] img,
-html[data-xcuic-enabled="true"]
-  article[data-testid="tweet"]
-  :is(div, a):has([data-testid="tweetPhoto"])
-  ~ :is(div, a)
-  div[data-testid="tweetPhoto"] img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-}
-
-/* カード内部コンテンツ・iframe の全幅化 */
-html[data-xcuic-enabled="true"] [data-testid="card.wrapper"] > div,
-html[data-xcuic-enabled="true"] [data-testid="card.wrapper"] iframe {
-  width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-}
-
-/* 引用ツイート */
-html[data-xcuic-enabled="true"]
-  :where(
-    .xcuic-quote-tweet,
-    article[data-testid="tweet"] div[role="link"]:has([data-testid="tweetText"]),
-    article[data-testid="tweet"] div[role="blockquote"],
-    article[data-testid="tweet"] div[data-testid="quoteTweet"]
-  ) {
-  display: flex !important;
-  flex-direction: column !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-}
 
 /* 投稿ボックス (Composer) */
 html[data-xcuic-enabled="true"]

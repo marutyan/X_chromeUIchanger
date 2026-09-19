@@ -16,17 +16,6 @@ namespace Xcuic {
     ].join(","),
     TWEET: 'article[data-testid="tweet"]',
     TWEET_TEXT: 'div[data-testid="tweetText"]',
-    TWEET_PHOTO: 'div[data-testid="tweetPhoto"]',
-    TWEET_VIDEO: [
-      'div[data-testid="videoPlayer"]',
-      'div[data-testid="videoComponent"]',
-    ].join(","),
-    CARD_WRAPPER: 'div[data-testid="card.wrapper"]',
-    QUOTE_TWEET: [
-      'div[role="link"][tabindex="0"]',
-      'div[aria-labelledby*="id__"][role="blockquote"]',
-      'div[data-testid="quoteTweet"]',
-    ].join(","),
     ARTICLE: [
       'article[data-testid="article"]',
       'div[data-testid="article-container"]',
@@ -34,7 +23,6 @@ namespace Xcuic {
       'div[data-testid="articleDraft"]',
       'div[data-testid="note"]',
     ].join(","),
-    AVATAR: '[data-testid*="UserAvatar"], [data-testid*="Tweet-User-Avatar"]',
     CELL_INNER_DIV: 'div[data-testid="cellInnerDiv"]',
     SIGNIFICANT_MUTATION: [
       '[data-testid="primaryColumn"]',
@@ -55,16 +43,7 @@ namespace Xcuic {
     SIDEBAR_COLUMN: "xcuic-sidebar-column",
     TIMELINE_WRAPPER: "xcuic-timeline-wrapper",
     TWEET: "xcuic-tweet",
-    TWEET_ROW: "xcuic-tweet-row",
-    AVATAR_COLUMN: "xcuic-avatar-column",
-    TWEET_CONTENT: "xcuic-tweet-content",
     TWEET_TEXT: "xcuic-tweet-text",
-    TWEET_PHOTO: "xcuic-tweet-photo",
-    TWEET_VIDEO: "xcuic-tweet-video",
-    CARD_WRAPPER: "xcuic-card-wrapper",
-    MEDIA_WRAPPER: "xcuic-media-wrapper",
-    QUOTE_TWEET: "xcuic-quote-tweet",
-    MEDIA: "xcuic-media",
     ARTICLE: "xcuic-article",
     ARTICLE_CONTENT: "xcuic-article-content",
     STATUS_DETAIL: "xcuic-status-detail",
@@ -84,7 +63,6 @@ namespace Xcuic {
     sidebarColumnFound: boolean;
     tweetsCount: number;
     articlesCount: number;
-    mediaCount: number;
   }
 
   /**
@@ -168,7 +146,6 @@ namespace Xcuic {
       sidebarColumnFound,
       tweetsCount: contentCounts.tweets,
       articlesCount: contentCounts.articles,
-      mediaCount: contentCounts.media,
     };
   }
 

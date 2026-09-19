@@ -15,7 +15,7 @@
 | `src/content/layout-controller.ts` | オーケストレーションと DOM 実測（`measureLayoutContext`）、ライフサイクル管理 |
 | `src/content/observers.ts` | 再タグ付けの契機監視（`RefreshObserver` による URL 変化・DOM 変更の検知とデバウンス） |
 | `src/content/selectors.ts` | セレクタとクラス名の情報源（`SELECTORS`, `CLASS_NAMES`）、構造要素のタグ付け |
-| `src/content/content-targets.ts` | ツイート内要素・メディア・記事・引用ツイートの特定とタグ付け（`tagContentTargets`） |
+| `src/content/content-targets.ts` | ツイート本文・記事の特定とタグ付け（`tagContentTargets`） |
 | `src/shared/layout-metrics.ts` | モード判定の純関数（`resolveLayoutMode`）とレイアウト定数定義 |
 | `src/shared/settings.ts` | 設定キー（`SETTING_KEY_ENABLED`）と既定値（`DEFAULT_ENABLED`） |
 
@@ -67,11 +67,9 @@ JavaScript は `document.documentElement` に `data-xcuic-enabled` と `data-xcu
 5. **右サイドバー (`div[data-testid="sidebarColumn"]`, `.xcuic-sidebar-column`)**:
    - wide モード時: `flex: 0 0 var(--xcuic-sidebar-width, 350px)`、幅 350px を固定維持する。
    - 画面幅 1000px 以下のメディアクエリ: サイドバーを `display: none` で非表示にし、タイムラインを全幅（`width: 100%`）にして衝突を防ぐ。
-6. **ツイートおよび内部コンテンツの追従**:
-   - タグ付けは `classList` のみで行い、インラインスタイルは書き込まない。
-   - ツイート行コンテナ（`.xcuic-tweet-row`）とアバター列（`.xcuic-avatar-column`）で上部揃え（`align-items: flex-start`, `align-self: flex-start`）を維持し、アバターサイズを 40px に固定する。
-   - ツイート本文・右列（`.xcuic-tweet-content`）、写真・動画・カード（`.xcuic-media-wrapper`, `.xcuic-media`）を全幅化（`width: 100%`）する。
-   - 単一メディアには `max-height: min(70vh, 750px)` を指定し、縦長画像のはみ出しを防ぐ。
+6. **ツイートおよび内部コンテンツの扱い**:
+   - 拡張はカラム幅（header / primaryColumn / sidebarColumn）だけを変え、ツイート内部（写真・動画・カード・引用・行/列構造）の幅は X の計算に任せる。X 自身がインラインスタイル等で計算するメディアサイズを上書きするとサムネイルの幅が 0 に潰れる等の不具合が生じるため、内部要素の強制全幅化は行わない。
+   - タグ付けは `classList` のみで行い、インラインスタイルは書き込まない。アバターの 40px サイズ維持、スレッド連結線の 2px 幅保護、およびアクションバーの均等配置のみを CSS で補助する。
    - 長文記事（`.xcuic-article`, `.xcuic-status-detail`）は `max-width: 950px` に広げる。
 
 ## リサイズ・DOM変更の監視機構 (`observers.ts`, `layout-controller.ts`)
