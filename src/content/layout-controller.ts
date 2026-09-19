@@ -95,7 +95,10 @@ namespace Xcuic {
         return;
       }
 
-      this.updateMainRegionTargets();
+      // メイン領域が無い画面（ログイン画面など）ではモード再計算も行わず、標準表示を保つ
+      if (!this.updateMainRegionTargets()) {
+        return;
+      }
       this.scheduleMetricsUpdate();
     }
 
@@ -157,14 +160,14 @@ namespace Xcuic {
     }
 
     /**
-     * メイン領域の再探索、アタッチ、およびレイアウト用クラスの付与を行う。
+     * メイン領域の再探索、アタッチ、およびレイアウト用クラスの付与を行い、メイン領域を検出できたかを返す。
      * enable() と refresh() で重複するメイン領域の検出・追従処理を一元化するために必要。
      */
-    private updateMainRegionTargets(): void {
+    private updateMainRegionTargets(): boolean {
       const nextMainRegion = findMainRegion();
       if (nextMainRegion === null) {
         this.detachFromMainRegion();
-        return;
+        return false;
       }
 
       if (nextMainRegion !== this.mainRegion) {
@@ -172,6 +175,7 @@ namespace Xcuic {
       }
 
       tagLayoutTargets(nextMainRegion);
+      return true;
     }
 
     /**
