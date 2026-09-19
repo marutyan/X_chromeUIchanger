@@ -6,8 +6,8 @@ namespace Xcuic {
   export interface EnabledSettingSource {
     /** 現在の設定値を非同期で取得する。 */
     get(): Promise<boolean>;
-    /** 設定値の変更通知を受け取るリスナーを登録する。購読解除用の関数を返す。 */
-    onChange(listener: (enabled: boolean) => void): () => void;
+    /** 設定値の変更通知を受け取るリスナーを登録する。 */
+    onChange(listener: (enabled: boolean) => void): void;
   }
 
   /**
@@ -30,9 +30,13 @@ namespace Xcuic {
       return DEFAULT_ENABLED;
     }
 
-    onChange(listener: (enabled: boolean) => void): () => void {
+    /**
+     * chrome.storage の変更監視リスナーを登録する。
+     * ポップアップ等による設定変更を即時反映するために必要。
+     */
+    onChange(listener: (enabled: boolean) => void): void {
       if (typeof chrome === "undefined" || !chrome.storage?.onChanged) {
-        return () => {};
+        return;
       }
 
       const handleChanged = (
@@ -49,42 +53,24 @@ namespace Xcuic {
       };
 
       chrome.storage.onChanged.addListener(handleChanged);
-      return () => {
-        // chrome.storage.onChanged の型定義および実行環境の制約に合わせクリーンアップ
-      };
     }
   }
 
   /**
-   * メモリ上で設定値を保持するテスト・フォールバック用の設定実装。
-   * 拡張機能 API が利用できない非ブラウザ環境などで動作を担保します。
+   * メモリ上で既定値を返すフォールバック用の設定実装。
+   * chrome.storage が利用できない非拡張機能環境で動作を担保するために使用する。
    */
   export class InMemoryEnabledSettingSource implements EnabledSettingSource {
-    private readonly listeners = new Set<(enabled: boolean) => void>();
-
-    constructor(private enabled: boolean = DEFAULT_ENABLED) {}
+    constructor(private readonly enabled: boolean = DEFAULT_ENABLED) {}
 
     async get(): Promise<boolean> {
       return this.enabled;
     }
 
-    onChange(listener: (enabled: boolean) => void): () => void {
-      this.listeners.add(listener);
-      return () => {
-        this.listeners.delete(listener);
-      };
-    }
-
     /**
-     * テスト環境等から設定値を更新し、リスナーへ変更を通知する。
+     * 変更リスナー登録のスタブ。
+     * 非拡張機能環境では外部変更が発生しないため何もしない。
      */
-    set(enabled: boolean): void {
-      if (this.enabled !== enabled) {
-        this.enabled = enabled;
-        for (const listener of this.listeners) {
-          listener(enabled);
-        }
-      }
-    }
+    onChange(_listener: (enabled: boolean) => void): void {}
   }
 }

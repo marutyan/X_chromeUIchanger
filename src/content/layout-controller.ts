@@ -10,23 +10,20 @@ namespace Xcuic {
   }
 
   /**
-   * DOM 要素からヘッダー幅、サイドバー幅、サイドバー表示有無、ビューポート幅を実測する純粋な計測関数。
+   * DOM 要素からヘッダー幅、サイドバー幅、サイドバー表示有無、ビューポート幅を実測する。
+   * 現在の表示状態に応じたレイアウトモードを決定するための実測値を一括取得する。
    */
   export function measureLayoutContext(mainRegion: HTMLElement | null): MeasuredLayoutContext {
-    const viewportWidthPx = typeof window !== "undefined" && window.innerWidth
-      ? window.innerWidth
-      : (typeof document !== "undefined" ? document.documentElement.clientWidth : 0);
+    const viewportWidthPx = window.innerWidth || document.documentElement.clientWidth;
 
-    const headerEl = typeof document !== "undefined"
-      ? document.querySelector<HTMLElement>(SELECTORS.HEADER)
-      : null;
+    const headerEl = document.querySelector<HTMLElement>(SELECTORS.HEADER);
     const headerWidthPx = headerEl && headerEl.offsetWidth > 0 ? headerEl.offsetWidth : undefined;
 
     const sidebarEl = mainRegion?.querySelector<HTMLElement>(SELECTORS.SIDEBAR_COLUMN)
-      ?? (typeof document !== "undefined" ? document.querySelector<HTMLElement>(SELECTORS.SIDEBAR_COLUMN) : null);
+      ?? document.querySelector<HTMLElement>(SELECTORS.SIDEBAR_COLUMN);
 
     const hasSidebar = sidebarEl !== null
-      ? (sidebarEl.offsetWidth > 0 && typeof getComputedStyle === "function" && getComputedStyle(sidebarEl).display !== "none")
+      ? (sidebarEl.offsetWidth > 0 && getComputedStyle(sidebarEl).display !== "none")
       : false;
 
     const sidebarWidthPx = (sidebarEl && sidebarEl.offsetWidth > 0) ? sidebarEl.offsetWidth : undefined;
@@ -98,38 +95,25 @@ namespace Xcuic {
         return;
       }
 
-      const nextMainRegion = findMainRegion();
-      if (nextMainRegion === null) {
-        this.detachFromMainRegion();
-        return;
-      }
-
-      if (nextMainRegion !== this.mainRegion) {
-        this.attachToMainRegion(nextMainRegion);
-      }
-
-      tagLayoutTargets(nextMainRegion);
+      this.updateMainRegionTargets();
       this.scheduleMetricsUpdate();
     }
 
     /**
-     * 監視を開始し、初回のタグ付けと属性同期設定を単一同期処理内で行う。
+     * 拡張機能を有効化し、enabled 属性付与、DOM タグ付け、同期実測、layout 属性付与および監視開始を行う。
+     * 拡張 CSS 適用済みの DOM から実測して初期モードを正確に決定し、中間フレームを生じさせないために必要。
      */
     private enable(): void {
-      this.startWindowObserver();
-      this.refreshObserver.start();
+      this.documentLayoutState.setEnabled();
+      this.updateMainRegionTargets();
 
-      const nextMainRegion = findMainRegion();
-      if (nextMainRegion !== null) {
-        this.attachToMainRegion(nextMainRegion);
-        tagLayoutTargets(nextMainRegion);
-      }
-
-      // 初回実測とモード決定を同期実行し、enabled属性とlayout属性を同時に反映して中間状態を解消する
       const initialMode = this.computeLayoutMode();
       this.isCurrentlyWide = (initialMode === "wide");
       this.previousLayoutMode = initialMode;
-      this.documentLayoutState.apply(true, initialMode);
+      this.documentLayoutState.setLayoutMode(initialMode);
+
+      this.startWindowObserver();
+      this.refreshObserver.start();
     }
 
     /**
@@ -170,6 +154,24 @@ namespace Xcuic {
         cancelAnimationFrame(this.resizeAnimationFrameId);
         this.resizeAnimationFrameId = null;
       }
+    }
+
+    /**
+     * メイン領域の再探索、アタッチ、およびレイアウト用クラスの付与を行う。
+     * enable() と refresh() で重複するメイン領域の検出・追従処理を一元化するために必要。
+     */
+    private updateMainRegionTargets(): void {
+      const nextMainRegion = findMainRegion();
+      if (nextMainRegion === null) {
+        this.detachFromMainRegion();
+        return;
+      }
+
+      if (nextMainRegion !== this.mainRegion) {
+        this.attachToMainRegion(nextMainRegion);
+      }
+
+      tagLayoutTargets(nextMainRegion);
     }
 
     /**

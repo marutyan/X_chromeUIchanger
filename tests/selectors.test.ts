@@ -331,4 +331,23 @@ namespace SelectorTests {
     assert.equal(textBlock.classList.contains("xcuic-tweet-text"), false);
     assert.equal(photoBlock.classList.contains("xcuic-tweet-photo"), false);
   });
+
+  test("SIGNIFICANT_MUTATION: タグ名を限定せず主要ノードおよびmain要素・ロールを検出する", () => {
+    // タグ名が div 以外の要素でも data-testid に合致すればマッチすること
+    const sectionPrimary = new FakeElement("section", { "data-testid": "primaryColumn" });
+    const asideSidebar = new FakeElement("aside", { "data-testid": "sidebarColumn" });
+    const liCell = new FakeElement("li", { "data-testid": "cellInnerDiv" });
+    const mainEl = new FakeElement("main");
+    const divRoleMain = new FakeElement("div", { role: "main" });
+
+    assert.equal(sectionPrimary.matches(Xcuic.SELECTORS.SIGNIFICANT_MUTATION), true);
+    assert.equal(asideSidebar.matches(Xcuic.SELECTORS.SIGNIFICANT_MUTATION), true);
+    assert.equal(liCell.matches(Xcuic.SELECTORS.SIGNIFICANT_MUTATION), true);
+    assert.equal(mainEl.matches(Xcuic.SELECTORS.SIGNIFICANT_MUTATION), true);
+    assert.equal(divRoleMain.matches(Xcuic.SELECTORS.SIGNIFICANT_MUTATION), true);
+
+    // 無関係な要素はマッチしないこと
+    const spanOther = new FakeElement("span", { "data-testid": "other" });
+    assert.equal(spanOther.matches(Xcuic.SELECTORS.SIGNIFICANT_MUTATION), false);
+  });
 }

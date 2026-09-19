@@ -84,7 +84,7 @@ JavaScript は `document.documentElement` に `data-xcuic-enabled` と `data-xcu
 2. **DOM変更監視 (`RefreshObserver`)**:
    - `document.body`（または `document.documentElement`）を対象に `childList` および `subtree` を監視する。
    - URL変化時: 50ms のデバウンス後に rAF で `refresh()` を実行。
-   - 重要ノード変更時: `SELECTORS.SIGNIFICANT_MUTATION` に合致する要素（`primaryColumn`, `sidebarColumn`, `cellInnerDiv`, `main`）の追加・削除が含まれる場合、200ms のデバウンス後に rAF で `refresh()` を実行。
+   - 重要ノード変更時: `SELECTORS.SIGNIFICANT_MUTATION` に合致する要素（`primaryColumn`, `sidebarColumn`, `cellInnerDiv`, `main`, `[role="main"]`）の追加・削除が含まれる場合、200ms のデバウンス後に rAF で `refresh()` を実行。
 
 ## Runtime flow
 
@@ -92,9 +92,10 @@ JavaScript は `document.documentElement` に `data-xcuic-enabled` と `data-xcu
    - `ChromeStorageEnabledSettingSource`（またはテスト用の `InMemoryEnabledSettingSource`）から有効化設定を読み込む。
    - 設定変更のリスナーを登録する。
 2. **有効化 (`enable`)**:
-   - リサイズ監視と DOM 監視を開始する。
+   - `documentLayoutState.setEnabled()` により `data-xcuic-enabled="true"` 属性を付与し、拡張 CSS を適用する。
    - メイン領域を検出し、構造要素およびツイート要素をタグ付けする。
-   - 初期実測とモード判定を行い、`data-xcuic-enabled="true"` と初回の `data-xcuic-layout` 属性を同一の同期処理で `document.documentElement` に付与する（enabled のみが付いた中間フレームによるレイアウトずれを防止）。
+   - 拡張 CSS 適用済みの DOM から初期実測とモード判定を行い、`data-xcuic-layout` 属性を付与する（これらを同一同期処理内で行い、中間フレームを生じさせない）。
+   - リサイズ監視と DOM 監視を開始する。
 3. **リサイズ・更新追従**:
    - リサイズや DOM 変更を検知すると、間引き・rAF 経由で再実測と判定を行う。
    - 前回とモードが変化した場合のみ `data-xcuic-layout` 属性を更新する。

@@ -37,11 +37,11 @@ namespace Xcuic {
     AVATAR: '[data-testid*="UserAvatar"], [data-testid*="Tweet-User-Avatar"]',
     CELL_INNER_DIV: 'div[data-testid="cellInnerDiv"]',
     SIGNIFICANT_MUTATION: [
-      'div[data-testid="primaryColumn"]',
-      'div[data-testid="sidebarColumn"]',
-      'div[data-testid="cellInnerDiv"]',
-      'main[role="main"]',
+      '[data-testid="primaryColumn"]',
+      '[data-testid="sidebarColumn"]',
+      '[data-testid="cellInnerDiv"]',
       'main',
+      '[role="main"]',
     ].join(","),
   } as const;
 

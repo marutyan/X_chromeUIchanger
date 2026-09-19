@@ -29,7 +29,7 @@ X開発チーム自身がE2Eテストやアクセシビリティ自動テスト�
 | 引用ツイート | `div[data-testid="quoteTweet"]` (フォールバック含む) | 引用されたツイート枠 |
 | 記事/note | `article[data-testid="article"]`, `div[data-testid="article-container"]`, `div[data-testid="twitter-article"]`, `div[data-testid="articleDraft"]`, `div[data-testid="note"]` | X長文記事コンテンツ |
 | アバター要素 | `[data-testid*="UserAvatar"], [data-testid*="Tweet-User-Avatar"]` (`SELECTORS.AVATAR`) | ツイート行内でのアバター列とコンテンツ列の境界判定およびアバター保護 |
-| 重要変更ノード | `primaryColumn`, `sidebarColumn`, `cellInnerDiv`, `main[role="main"]`, `main` (`SELECTORS.SIGNIFICANT_MUTATION`) | DOM変更監視でレイアウト再計算が必要な要素の追加・削除の判定 |
+| 重要変更ノード | `[data-testid="primaryColumn"]`, `[data-testid="sidebarColumn"]`, `[data-testid="cellInnerDiv"]`, `main`, `[role="main"]` (`SELECTORS.SIGNIFICANT_MUTATION`) | DOM変更監視でレイアウト再計算が必要な要素の追加・削除の判定 |
 
 ### 2. WAI-ARIA セマンティック属性 (`role`, `aria-label`)
 

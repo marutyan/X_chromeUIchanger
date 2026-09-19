@@ -163,7 +163,6 @@ html[data-xcuic-enabled="true"] .xcuic-tweet-row {
   width: 100% !important;
   max-width: 100% !important;
   align-items: flex-start !important;
-  box-sizing: border-box !important;
 }
 
 /* ピルボタンの保護 */
@@ -192,10 +191,14 @@ html[data-xcuic-enabled="true"]
   align-self: flex-start !important;
 }
 
+/* アバター列コンテナ: 上部揃えのみを適用（旧インラインstyleと同等の効果に限定） */
+html[data-xcuic-enabled="true"] .xcuic-avatar-column {
+  align-self: flex-start !important;
+}
+
 /* アバターの外側コンテナ（左列）: 上部揃えと横幅固定 */
 html[data-xcuic-enabled="true"]
   :is(
-    .xcuic-avatar-column,
     article[data-testid="tweet"] div:has(> [data-testid*="UserAvatar"]),
     article[data-testid="tweet"] div:has(> [data-testid*="Tweet-User-Avatar"]),
     article[data-testid="tweet"] div:has(> .tweet-avatar)

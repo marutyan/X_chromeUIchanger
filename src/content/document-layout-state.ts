@@ -16,12 +16,11 @@ namespace Xcuic {
     constructor(private readonly element: HTMLElement = document.documentElement) {}
 
     /**
-     * 有効化フラグとレイアウトモードを同一フレームで同期的に適用する。
-     * 有効化時に2つの属性が別フレームで付与される中間状態（一瞬のレイアウトずれ）を防止します。
+     * 有効化属性（data-xcuic-enabled="true"）を付与する。
+     * 拡張CSSを有効化し、レイアウト計算用のDOM実測を正しい寸法で行うために必要。
      */
-    apply(enabled: boolean, mode: LayoutMode): void {
-      this.element.setAttribute(LAYOUT_ATTRIBUTES.ENABLED, enabled ? "true" : "false");
-      this.element.setAttribute(LAYOUT_ATTRIBUTES.LAYOUT, mode);
+    setEnabled(): void {
+      this.element.setAttribute(LAYOUT_ATTRIBUTES.ENABLED, "true");
     }
 
     /**
