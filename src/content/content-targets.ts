@@ -20,8 +20,10 @@ namespace Xcuic {
       const tweetText = tweet.querySelector<HTMLElement>(SELECTORS.TWEET_TEXT);
       if (tweetText !== null) {
         tweetText.classList.add("xcuic-tweet-text");
-        tagTweetContentContainer(tweet, tweetText);
       }
+
+      // ツイート右側のコンテンツ列（Right Column）の特定と全幅化
+      tagTweetContentContainer(tweet, tweetText);
 
       // 写真 (tweetPhoto)
       for (const photo of tweet.querySelectorAll<HTMLElement>(SELECTORS.TWEET_PHOTO)) {
@@ -68,28 +70,109 @@ namespace Xcuic {
     return { tweets, articles, media };
   }
 
-  function tagTweetContentContainer(tweet: HTMLElement, tweetText: HTMLElement): void {
-    // tweetText から上に向かって探索し、アバターと横並びになっている親/祖先コンテナを検出
-    let current: HTMLElement | null = tweetText.parentElement;
-    while (current !== null && current !== tweet) {
-      if (current.parentElement === tweet || (current.parentElement && current.parentElement.children.length >= 2)) {
+  function tagTweetContentContainer(tweet: HTMLElement, tweetText?: HTMLElement | null): void {
+    const anchor = tweetText ?? tweet.querySelector<HTMLElement>(
+      SELECTORS.TWEET_TEXT + ", " + SELECTORS.TWEET_PHOTO + ", " + SELECTORS.CARD_WRAPPER,
+    );
+    if (anchor === null) {
+      return;
+    }
+
+    // 1. 本文・メディアから上へ遡り、アバター列と分岐する親（rowコンテナ）の直下コンテンツ列を特定
+    let current: HTMLElement | null = anchor;
+    while (current !== null && current !== tweet && current.parentElement !== null && current.parentElement !== tweet) {
+      const parentEl: HTMLElement = current.parentElement;
+      const parentHasAvatar = parentEl.querySelector(
+        '[data-testid*="UserAvatar"], [data-testid*="Tweet-User-Avatar"]',
+      ) !== null;
+      const currentHasAvatar = current.querySelector(
+        '[data-testid*="UserAvatar"], [data-testid*="Tweet-User-Avatar"]',
+      ) !== null;
+
+      if (parentHasAvatar && !currentHasAvatar) {
         current.classList.add("xcuic-tweet-content");
+        if (current.style) {
+          current.style.maxWidth = "100%";
+          current.style.width = "100%";
+          current.style.flexGrow = "1";
+          current.style.flexShrink = "1";
+          current.style.minWidth = "0";
+        }
+        // 行コンテナ（アバターとコンテンツ列を並べる親）も 100% 全幅化 & 上部揃え強制
+        if (parentEl.style) {
+          parentEl.style.width = "100%";
+          parentEl.style.maxWidth = "100%";
+          parentEl.style.alignItems = "flex-start";
+        }
+        // アバターを含む兄弟列（左列）を常に上部（flex-start）に固定
+        for (const sibling of parentEl.children) {
+          const siblingEl = sibling as HTMLElement;
+          if (
+            sibling !== current &&
+            sibling.querySelector('[data-testid*="UserAvatar"], [data-testid*="Tweet-User-Avatar"]') &&
+            siblingEl.style
+          ) {
+            siblingEl.style.alignSelf = "flex-start";
+          }
+        }
+        return;
+      }
+      current = parentEl;
+    }
+
+    // 2. フォールバック: アバターが見つからない環境（モック等）での安全な特定
+    let fallback: HTMLElement | null = anchor.parentElement;
+    while (fallback !== null && fallback !== tweet) {
+      if (
+        fallback.parentElement === tweet ||
+        (fallback.parentElement && fallback.parentElement.children.length >= 2)
+      ) {
+        fallback.classList.add("xcuic-tweet-content");
+        if (fallback.style) {
+          fallback.style.maxWidth = "100%";
+          fallback.style.width = "100%";
+          fallback.style.flexGrow = "1";
+          fallback.style.flexShrink = "1";
+        }
+        if (fallback.parentElement && fallback.parentElement.style) {
+          fallback.parentElement.style.width = "100%";
+          fallback.parentElement.style.maxWidth = "100%";
+          fallback.parentElement.style.alignItems = "flex-start";
+        }
         break;
       }
-      current = current.parentElement;
+      fallback = fallback.parentElement;
     }
   }
 
   function tagMediaWrapper(mediaEl: HTMLElement, tweet: HTMLElement): void {
     let current: HTMLElement | null = mediaEl.parentElement;
     let depth = 0;
-    while (current !== null && current !== tweet && depth < 4) {
+    while (
+      current !== null &&
+      current !== tweet &&
+      !current.classList.contains("xcuic-tweet-content") &&
+      depth < 4
+    ) {
+      // アバターコンテナや行コンテナなど、アバターを含む上位コンテナには絶対に付与しない
+      const containsAvatar =
+        current.querySelector(
+          '[data-testid*="UserAvatar"], [data-testid*="Tweet-User-Avatar"]',
+        ) !== null;
+      if (containsAvatar) {
+        break;
+      }
+
       current.classList.add("xcuic-media-wrapper");
       const style = current.getAttribute("style");
-      if (style && (style.includes("504") || style.includes("max-width") || style.includes("width"))) {
-        // インラインスタイルの幅制限があれば解除
-        current.style.maxWidth = "100%";
-        current.style.width = "100%";
+      if (
+        style &&
+        (style.includes("504") || style.includes("max-width") || style.includes("width"))
+      ) {
+        if (current.style) {
+          current.style.maxWidth = "100%";
+          current.style.width = "100%";
+        }
       }
       current = current.parentElement;
       depth += 1;

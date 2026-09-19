@@ -92,6 +92,7 @@ namespace Xcuic {
       this.detachFromMainRegion();
       document.documentElement.removeAttribute(ENABLED_ATTRIBUTE);
       document.documentElement.removeAttribute(LAYOUT_ATTRIBUTE);
+      document.documentElement.removeAttribute("data-xcuic-sidebar");
       for (const variable of CSS_VARIABLES) {
         document.documentElement.style.removeProperty(variable);
       }
@@ -158,8 +159,11 @@ namespace Xcuic {
       const headerEl = document.querySelector<HTMLElement>(SELECTORS.HEADER);
       const headerWidthPx = headerEl && headerEl.offsetWidth > 0 ? headerEl.offsetWidth : undefined;
 
-      const sidebarEl = this.mainRegion?.querySelector<HTMLElement>(SELECTORS.SIDEBAR_COLUMN);
-      const hasSidebar = sidebarEl ? (sidebarEl.offsetWidth > 0 && getComputedStyle(sidebarEl).display !== "none") : true;
+      const sidebarEl = this.mainRegion?.querySelector<HTMLElement>(SELECTORS.SIDEBAR_COLUMN)
+        ?? document.querySelector<HTMLElement>(SELECTORS.SIDEBAR_COLUMN);
+      const hasSidebar = sidebarEl !== null
+        ? (sidebarEl.offsetWidth > 0 && getComputedStyle(sidebarEl).display !== "none")
+        : false;
       const sidebarWidthPx = (sidebarEl && sidebarEl.offsetWidth > 0) ? sidebarEl.offsetWidth : undefined;
 
       const metrics = calculateLayoutMetrics(viewportWidth, {
@@ -185,6 +189,10 @@ namespace Xcuic {
       document.documentElement.setAttribute(
         LAYOUT_ATTRIBUTE,
         metrics.compact ? "compact" : "wide",
+      );
+      document.documentElement.setAttribute(
+        "data-xcuic-sidebar",
+        hasSidebar ? "true" : "false",
       );
       document.documentElement.style.setProperty(
         "--xcuic-timeline-width",

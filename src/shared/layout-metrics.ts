@@ -14,7 +14,7 @@ namespace Xcuic {
     hasSidebar?: boolean;
   }
 
-  export const DEFAULT_HEADER_WIDTH_PX = 275;
+  export const DEFAULT_HEADER_WIDTH_PX = 300;
   export const COMPACT_HEADER_WIDTH_PX = 68;
   export const SIDEBAR_WIDTH_PX = 350;
   export const GAP_PX = 30;
@@ -39,9 +39,9 @@ namespace Xcuic {
 
     const currentlyWide = Boolean(options.currentlyWide);
     const hasSidebar = options.hasSidebar !== false;
-    const sidebarWidth = hasSidebar
-      ? (typeof options.sidebarWidthPx === "number" && options.sidebarWidthPx > 0 ? options.sidebarWidthPx : SIDEBAR_WIDTH_PX)
-      : 0;
+    const sidebarWidth = typeof options.sidebarWidthPx === "number" && options.sidebarWidthPx > 0
+      ? options.sidebarWidthPx
+      : SIDEBAR_WIDTH_PX;
 
     const headerWidth = typeof options.headerWidthPx === "number" && options.headerWidthPx > 0
       ? options.headerWidthPx + PADDING_PX
@@ -61,7 +61,7 @@ namespace Xcuic {
       return {
         mainWidthPx: roundPixel(safeWidth),
         timelineWidthPx: fallbackTimelineWidth,
-        sidebarWidthPx: hasSidebar ? sidebarWidth : 0,
+        sidebarWidthPx: sidebarWidth,
         canvasWidthPx: roundPixel(safeWidth),
         compact: true,
       };
@@ -79,7 +79,7 @@ namespace Xcuic {
     return {
       mainWidthPx: roundPixel(safeWidth),
       timelineWidthPx,
-      sidebarWidthPx: hasSidebar ? sidebarWidth : 0,
+      sidebarWidthPx: sidebarWidth,
       canvasWidthPx,
       compact: false,
     };

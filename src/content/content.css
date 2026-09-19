@@ -1,14 +1,7 @@
 /* X_chromeUIchanger - Content Styles */
 
-/* 画面全体の横スクロールを完全防止 (左パネル固定時の本文・右パネルの左右操作揺れを原理的に遮断) */
-html[data-xcuic-enabled="true"],
-html[data-xcuic-enabled="true"] body {
-  overflow-x: hidden !important;
-  max-width: 100vw !important;
-}
-
 html[data-xcuic-enabled="true"] {
-  --xcuic-header-width: 275px;
+  --xcuic-header-width: 300px;
   --xcuic-sidebar-width: 350px;
   --xcuic-gap: 30px;
   --xcuic-max-timeline: 900px;
@@ -21,38 +14,59 @@ html[data-xcuic-enabled="true"] {
   }
 }
 
+/* 画面全体の横スクロールを原理的に遮断 (本文や右パネルの左右操作揺れ・重なりを完全根絶)
+   ※ overflow: clip は scroll container を生成しないため、Xの仮想スクロール (window.scrollY) を一切阻害しない */
+html[data-xcuic-enabled="true"],
+html[data-xcuic-enabled="true"] body,
+html[data-xcuic-enabled="true"] .xcuic-app-row,
+html[data-xcuic-enabled="true"] main[role="main"] {
+  overflow-x: clip !important;
+}
+
 /* ==========================================================================
-   1. 画面全体の完全センタリング (右寄りの原因を根本解決)
-   Xは header に flex-grow: 1; align-items: flex-end をあてているため、
-   画面の余白がすべて左側に集約されて極端な右寄りになっていた。
-   header に margin-left: auto、main に margin-right: auto を指定することで、
-   flexbox の仕様に基づき左右の余白を 1:1 に均等分配し完全中央揃えを実現する。
+   1. 画面構造の相対配置 & 左右パネルの固定 (ズームイン・アウト時のパネル移動・崩壊を完全防止)
    ========================================================================== */
 
+/* 最上位 App Row: 横並び flex */
+html[data-xcuic-enabled="true"] .xcuic-app-row {
+  display: flex !important;
+  flex-direction: row !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 100vh !important;
+  box-sizing: border-box !important;
+}
+
+/* 左ナビ (header): 左端に固定 (ズームアウト時に中央へ流れる現象を根絶、300pxでクリエイタースタジオ等も省略なしで完全表示) */
 html[data-xcuic-enabled="true"] header[role="banner"] {
-  margin-left: auto !important;
   flex-grow: 0 !important;
   flex-shrink: 0 !important;
-  min-width: 68px !important;
+  flex: 0 0 var(--xcuic-header-width, 300px) !important;
+  width: var(--xcuic-header-width, 300px) !important;
+  min-width: var(--xcuic-header-width, 300px) !important;
+  max-width: var(--xcuic-header-width, 300px) !important;
+  align-items: flex-start !important;
   box-sizing: border-box !important;
 }
 
+/* 左ナビ内部リンク・コンテナのテキスト見切れ防止 */
+html[data-xcuic-enabled="true"] header[role="banner"] nav a,
+html[data-xcuic-enabled="true"] header[role="banner"] nav a > div {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* メイン領域 (main): 残りの横幅を全幅活用 (相対値 flex) */
 html[data-xcuic-enabled="true"] main[role="main"] {
-  margin-right: auto !important;
-  flex-grow: 0 !important;
-  flex-shrink: 1 !important;
-  width: calc(100vw - var(--xcuic-header-width) - 20px) !important;
-  max-width: calc(var(--xcuic-max-timeline) + var(--xcuic-sidebar-width) + var(--xcuic-gap)) !important;
+  flex: 1 1 0% !important;
   min-width: 0 !important;
+  width: auto !important;
+  max-width: 100% !important;
   box-sizing: border-box !important;
 }
 
-/* ==========================================================================
-   2. メインラッパー & カラムの相対値レスポンシブ展開
-   固定ピクセルではなく calc() と flex-grow による滑らかな自動伸縮
-   ========================================================================== */
-
-html[data-xcuic-enabled="true"]
+/* Wideモード時: メインラッパーを全幅展開 (右端に20pxパディングを確保し、右パネルがブラウザ枠外へめり込む現象を完全根絶) */
+html[data-xcuic-enabled="true"][data-xcuic-layout="wide"]
   :where(
     main[role="main"] > div,
     .xcuic-main-wrapper
@@ -61,38 +75,29 @@ html[data-xcuic-enabled="true"]
   max-width: 100% !important;
   display: flex !important;
   flex-direction: row !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
+  gap: var(--xcuic-gap, 30px) !important;
+  padding-right: 20px !important;
   box-sizing: border-box !important;
 }
 
-/* 中央タイムライン: 画面余白に応じて相対的に伸縮 (最大900px、画面幅からはみ出さない) */
-html[data-xcuic-enabled="true"]
+/* Wideモード時の中央タイムライン:
+   Flexbox の flex: 1 1 0% により、左ナビと右サイドバーの間の空間を余白ゼロで完全充填！
+   固定px計算による余白残りやサイドバー押し出しを原理的に排除 */
+html[data-xcuic-enabled="true"][data-xcuic-layout="wide"]
   :where(
     div[data-testid="primaryColumn"],
     .xcuic-primary-column
   ) {
-  flex-grow: 1 !important;
-  flex-shrink: 1 !important;
-  width: calc(100% - var(--xcuic-sidebar-width) - var(--xcuic-gap)) !important;
+  flex: 1 1 0% !important;
   min-width: 0 !important;
-  max-width: var(--xcuic-max-timeline, 900px) !important;
+  width: auto !important;
+  max-width: none !important;
   box-sizing: border-box !important;
 }
 
-/* サイドバー非表示時（1カラム）の全幅適応 */
-@media (max-width: 1000px) {
-  html[data-xcuic-enabled="true"]
-    :where(
-      div[data-testid="primaryColumn"],
-      .xcuic-primary-column
-    ) {
-    width: 100% !important;
-    min-width: 0 !important;
-  }
-}
-
-/* 右サイドバー: 幅350pxを厳格に固定維持 */
-html[data-xcuic-enabled="true"]
+/* Wideモード時の右サイドバー: 幅350pxを固定維持し右端へ固定配置 */
+html[data-xcuic-enabled="true"][data-xcuic-layout="wide"]
   :where(
     div[data-testid="sidebarColumn"],
     .xcuic-sidebar-column
@@ -100,17 +105,50 @@ html[data-xcuic-enabled="true"]
   width: var(--xcuic-sidebar-width, 350px) !important;
   min-width: var(--xcuic-sidebar-width, 350px) !important;
   max-width: var(--xcuic-sidebar-width, 350px) !important;
-  flex-shrink: 0 !important;
+  flex: 0 0 var(--xcuic-sidebar-width, 350px) !important;
   box-sizing: border-box !important;
 }
 
+/* ズームイン時・小画面時 (1000px以下):
+   右サイドバーを自動非表示にし、タイムラインを100%全幅にして衝突・横スクロールを防止 */
+@media (max-width: 1000px) {
+  html[data-xcuic-enabled="true"]
+    :where(
+      div[data-testid="sidebarColumn"],
+      .xcuic-sidebar-column
+    ) {
+    display: none !important;
+  }
+
+  html[data-xcuic-enabled="true"]
+    :where(
+      div[data-testid="primaryColumn"],
+      .xcuic-primary-column
+    ) {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Compactモード時 (ズームイン時・小画面時):
+   幅の強制上書きを解除し、X公式のレスポンシブ挙動に完全委任する！ */
+html[data-xcuic-enabled="true"][data-xcuic-layout="compact"]
+  :where(
+    div[data-testid="primaryColumn"],
+    .xcuic-primary-column
+  ) {
+  max-width: 600px !important;
+}
+
 /* ==========================================================================
-   3. タイムライン内部 & ツイートの全幅展開
+   2. タイムライン内部の全幅展開 & アバターの厳格保護
    ========================================================================== */
 
+/* タイムライン内のコンテナ・ツイート自体の幅を 100% に統一 */
 html[data-xcuic-enabled="true"]
   :where(
-    .xcuic-primary-column > div,
     .xcuic-timeline-wrapper,
     div[data-testid="primaryColumn"] section,
     div[data-testid="cellInnerDiv"],
@@ -122,25 +160,70 @@ html[data-xcuic-enabled="true"]
   box-sizing: border-box !important;
 }
 
-/* アバター列の幅を保護 (40px 前後) */
-html[data-xcuic-enabled="true"]
-  article[data-testid="tweet"] [data-testid*="UserAvatar"],
-html[data-xcuic-enabled="true"]
-  article[data-testid="tweet"] .tweet-avatar {
-  flex-shrink: 0 !important;
+/* ピルボタンの保護 */
+html[data-xcuic-enabled="true"] [data-testid="pillLabel"],
+html[data-xcuic-enabled="true"] button:has([data-testid="pillLabel"]) {
+  width: auto !important;
+  max-width: none !important;
+  pointer-events: auto !important;
 }
 
-/* ツイート本文・メディア列を右端まで100%伸長 */
+/* アバターの厳格保護: 40px / 48px を死守し、絶対に 100% に拡大させない！常に上部（flex-start）に固定！ */
+html[data-xcuic-enabled="true"]
+  :is(
+    article[data-testid="tweet"] [data-testid*="UserAvatar"],
+    article[data-testid="tweet"] [data-testid*="Tweet-User-Avatar"],
+    article[data-testid="tweet"] .tweet-avatar
+  ) {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  border-radius: 50% !important;
+  box-sizing: border-box !important;
+  align-self: flex-start !important;
+}
+
+/* アバターの外側コンテナ（左列）も常に上部揃え & 横幅固定 */
+html[data-xcuic-enabled="true"]
+  :is(
+    article[data-testid="tweet"] div:has(> [data-testid*="UserAvatar"]),
+    article[data-testid="tweet"] div:has(> [data-testid*="Tweet-User-Avatar"]),
+    article[data-testid="tweet"] div:has(> .tweet-avatar)
+  ) {
+  align-self: flex-start !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+}
+
+/* スレッド連結線（リプライアバター下の縦線）の厳格保護: 2px幅を死守し、巨大なグレー四角化を絶対に防ぐ！ */
+html[data-xcuic-enabled="true"] article[data-testid="tweet"] :is(div, span)[style*="width: 2px"],
+html[data-xcuic-enabled="true"] article[data-testid="tweet"] :is(div, span)[style*="width:2px"],
+html[data-xcuic-enabled="true"] article[data-testid="tweet"] div[aria-hidden="true"][style*="background-color"] {
+  width: 2px !important;
+  min-width: 2px !important;
+  max-width: 2px !important;
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+  box-sizing: content-box !important;
+}
+
+/* ツイート右側のコンテンツ列 (ユーザー名・本文・メディア・アクションバー) を右端まで 100% 伸長
+   ※ アバター直下のスレッド連結線にマッチしてしまう div:has(...) ~ div / + div は完全撤廃！ */
 html[data-xcuic-enabled="true"]
   :where(
     .xcuic-tweet-content,
-    article[data-testid="tweet"] div:has(> [data-testid="tweetText"]),
-    article[data-testid="tweet"] div:has(> [data-testid="card.wrapper"]),
-    article[data-testid="tweet"] div:has(> [data-testid="tweetPhoto"])
+    .tweet-content,
+    article[data-testid="tweet"] div:has(> div[data-testid="tweetText"]),
+    article[data-testid="tweet"] div:has(> div[role="group"])
   ) {
   flex-grow: 1 !important;
   flex-shrink: 1 !important;
   min-width: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
   box-sizing: border-box !important;
 }
 
@@ -152,14 +235,26 @@ html[data-xcuic-enabled="true"]
   ) {
   width: 100% !important;
   max-width: 100% !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+  box-sizing: border-box !important;
+}
+
+/* ツイート下部アクションバー (返信・リポスト・いいね等のアイコン列) を全幅均等配置し、右側の巨大な余白を完全消去 */
+html[data-xcuic-enabled="true"]
+  article[data-testid="tweet"] div[role="group"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  justify-content: space-between !important;
   box-sizing: border-box !important;
 }
 
 /* ==========================================================================
-   4. メディア・カード要素の 100% 全幅展開
-   504px 固定のインラインスタイルを強制解除
+   3. メディア・カード要素の 100% 全幅展開 (504px 制限の完全突破)
    ========================================================================== */
 
+/* メディア要素本体 */
 html[data-xcuic-enabled="true"]
   :where(
     div[data-testid="tweetPhoto"],
@@ -179,19 +274,83 @@ html[data-xcuic-enabled="true"]
   max-width: 100% !important;
 }
 
-/* カードおよびメディアのラッパーに対する 504px 等のインライン制限を解除 */
+/* カードおよびメディアを内包する中間ラッパー・リンク (504px等) の全幅化
+   ※ ツイート全体の親divや行コンテナに誤爆する祖先セレクタ (:is(div, a):has(...)) や
+      中間ラッパーへの display:flex / align-items:center / max-height は完全排除！ */
 html[data-xcuic-enabled="true"]
   :where(
     .xcuic-media-wrapper,
-    article[data-testid="tweet"] div:has([data-testid="card.wrapper"]),
-    article[data-testid="tweet"] div:has([data-testid="tweetPhoto"]),
-    article[data-testid="tweet"] div:has([data-testid="videoPlayer"]),
+    article[data-testid="tweet"] a:has(> div[data-testid="tweetPhoto"]),
+    article[data-testid="tweet"] a:has(> div[data-testid="videoPlayer"]),
+    article[data-testid="tweet"] a:has(> div[data-testid="videoComponent"]),
+    article[data-testid="tweet"] a:has(> div[data-testid="card.wrapper"]),
     article[data-testid="tweet"] div[style*="504px"],
-    article[data-testid="tweet"] div[style*="504 px"]
+    article[data-testid="tweet"] div[style*="504 px"],
+    article[data-testid="tweet"] a[style*="504px"],
+    article[data-testid="tweet"] a[style*="504 px"]
   ) {
   max-width: 100% !important;
   width: 100% !important;
   box-sizing: border-box !important;
+}
+
+/* 写真・画像コンテナの最大高さ制御 & 中央揃え (縦長画像が画面高さを超えてスクロール困難になる現象を完全防止) */
+html[data-xcuic-enabled="true"] div[data-testid="tweetPhoto"] {
+  max-height: min(70vh, 750px) !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  overflow: hidden !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* 単一写真・画像自体の全幅フィット & 縦長時の画面内収容 (70vh制限 & アスペクト比維持) */
+html[data-xcuic-enabled="true"] div[data-testid="tweetPhoto"] img {
+  width: auto !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: min(70vh, 750px) !important;
+  object-fit: contain !important;
+  border-radius: 16px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* 複数画像グリッド（2枚〜4枚）はグリッドセル内をきれいに埋める */
+html[data-xcuic-enabled="true"]
+  article[data-testid="tweet"]
+  :is(div, a):has(~ :is(div, a) [data-testid="tweetPhoto"])
+  div[data-testid="tweetPhoto"] img,
+html[data-xcuic-enabled="true"]
+  article[data-testid="tweet"]
+  :is(div, a):has([data-testid="tweetPhoto"])
+  ~ :is(div, a)
+  div[data-testid="tweetPhoto"] img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* 動画要素自体の全幅フィット & 縦長動画の画面内収容 (70vh制限) */
+html[data-xcuic-enabled="true"] div[data-testid="videoPlayer"],
+html[data-xcuic-enabled="true"] div[data-testid="videoComponent"] {
+  max-height: min(70vh, 750px) !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+html[data-xcuic-enabled="true"] div[data-testid="videoPlayer"] video,
+html[data-xcuic-enabled="true"] div[data-testid="videoComponent"] video {
+  width: auto !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: min(70vh, 750px) !important;
+  object-fit: contain !important;
+  border-radius: 16px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 /* カード内部コンテンツ・iframe の全幅化 */

@@ -280,4 +280,37 @@ namespace SelectorTests {
     assert.equal(article.classList.contains("xcuic-article"), false);
     assert.equal(articleParagraph.classList.contains("xcuic-article-content"), false);
   });
+
+  test("tagLayoutTargets: アバター列の兄弟要素（右側コンテンツ列全体）を正しく検出してxcuic-tweet-contentを付与する", () => {
+    const main = new FakeElement("main", { role: "main" });
+    const primary = main.append(new FakeElement("div", { "data-testid": "primaryColumn" }));
+    const timeline = primary.append(new FakeElement("section", { role: "region" }));
+    const tweet = timeline.append(new FakeElement("article", { "data-testid": "tweet" }));
+
+    // X の実 DOM 構造: アバター列と右側コンテンツ列が横並び
+    const rowWrapper = tweet.append(new FakeElement("div"));
+    const avatarCol = rowWrapper.append(new FakeElement("div"));
+    avatarCol.append(new FakeElement("div", { "data-testid": "Tweet-User-Avatar" }));
+
+    const contentCol = rowWrapper.append(new FakeElement("div"));
+    const headerBlock = contentCol.append(new FakeElement("div", { "data-testid": "User-Name" }));
+    const textBlock = contentCol.append(new FakeElement("div", { "data-testid": "tweetText" }));
+    const photoBlock = contentCol.append(new FakeElement("div", { "data-testid": "tweetPhoto" }));
+
+    Xcuic.tagLayoutTargets(main as unknown as HTMLElement);
+
+    assert.equal(
+      contentCol.classList.contains("xcuic-tweet-content"),
+      true,
+      "アバターの兄弟であるコンテンツ列全体に xcuic-tweet-content が付与されるべき",
+    );
+    assert.equal(
+      textBlock.classList.contains("xcuic-tweet-text"),
+      true,
+    );
+    assert.equal(
+      photoBlock.classList.contains("xcuic-tweet-photo"),
+      true,
+    );
+  });
 }

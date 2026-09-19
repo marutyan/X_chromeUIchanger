@@ -162,10 +162,13 @@ namespace Xcuic {
     mainRegion: HTMLElement,
     primaryColumn: HTMLElement,
   ): HTMLElement | null {
-    let current: HTMLElement | null = primaryColumn;
-    while (current !== null && current.parentElement !== mainRegion) {
+    let current: HTMLElement | null = primaryColumn.parentElement;
+    let topmostWrapper: HTMLElement | null = null;
+    while (current !== null && current !== mainRegion) {
+      current.classList.add("xcuic-main-wrapper");
+      topmostWrapper = current;
       current = current.parentElement;
     }
-    return current ?? (mainRegion.firstElementChild as HTMLElement | null);
+    return topmostWrapper ?? (mainRegion.firstElementChild as HTMLElement | null);
   }
 }
