@@ -28,6 +28,8 @@ X開発チーム自身がE2Eテストやアクセシビリティ自動テスト�
 | カード/リンク | `div[data-testid="card.wrapper"]` | OGPプレビュー枠 |
 | 引用ツイート | `div[data-testid="quoteTweet"]` (フォールバック含む) | 引用されたツイート枠 |
 | 記事/note | `article[data-testid="article"]`, `div[data-testid="article-container"]`, `div[data-testid="twitter-article"]`, `div[data-testid="articleDraft"]`, `div[data-testid="note"]` | X長文記事コンテンツ |
+| アバター要素 | `[data-testid*="UserAvatar"], [data-testid*="Tweet-User-Avatar"]` (`SELECTORS.AVATAR`) | ツイート行内でのアバター列とコンテンツ列の境界判定およびアバター保護 |
+| 重要変更ノード | `primaryColumn`, `sidebarColumn`, `cellInnerDiv`, `main[role="main"]`, `main` (`SELECTORS.SIGNIFICANT_MUTATION`) | DOM変更監視でレイアウト再計算が必要な要素の追加・削除の判定 |
 
 ### 2. WAI-ARIA セマンティック属性 (`role`, `aria-label`)
 
@@ -46,12 +48,19 @@ Web標準規格であるARIA属性は、UIリニューアルが行われても�
   - まず `root.querySelector(SELECTORS.MAIN)` を取得。
   - その内部に `primaryColumn` または `tweet` が存在することを確認してメイン領域を確定。
   - `main` が取得できない場合でも、`primaryColumn.closest(SELECTORS.MAIN)` または親要素から安全に特定。
-- `findMainWrapper()`:
-  - `primaryColumn` から親へ遡り、`mainRegion` の直下ラッパー（中央＋右サイドバーを横並びにするflexコンテナ）を確実に捕捉する。
+- `findMainWrappers(mainRegion, primaryColumn)`:
+  - `primaryColumn` から親へ遡り、`mainRegion` に至る中間ラッパー要素の配列を探索して返す。探索とクラス付与（`xcuic-main-wrapper`）の責務を分離した純粋な探索関数である。
 
 ### 4. フォールバックリストの結合
 
 新機能やA/Bテストでタグ名やテストIDが並行運用されるケースに備え、セレクタをカンマ区切りで結合して複数候補をサポートする（例: `TWEET_VIDEO`, `ARTICLE`, `QUOTE_TWEET`）。
+
+## クラス名の情報源 (`CLASS_NAMES`) と付与クラス
+
+DOM に付与するクラス名は `CLASS_NAMES` 定数オブジェクトで一元管理し、無効化時のクラス一括消去に用いられる全クラス配列 `TARGET_CLASSES` もここから導出する。
+
+- `xcuic-tweet-row`: ツイート内部でアバター列と右側コンテンツ列を横並びに配置する行コンテナ要素。
+- `xcuic-avatar-column`: ツイート左側のアバターを内包する列コンテナ要素（`align-self: flex-start` により上部揃えを維持）。
 
 ## Fail Closed 原則
 

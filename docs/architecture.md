@@ -2,99 +2,108 @@
 
 ## Responsibility
 
-本拡張機能は、X（旧Twitter）デスクトップ版（`x.com`, `twitter.com`）におけるメイン領域の横幅とカラムレイアウトのみを最適化する。
-タイムラインの投稿内容、フォント、配色テーマ、いいね・リポスト等の操作、APIリクエスト、認証情報、Cookie、ユーザーデータへの介入や変更は一切行わない。
+本拡張機能は、X（旧Twitter）デスクトップ版（`x.com`, `twitter.com`）におけるメイン領域の横幅とカラムレイアウトを最適化する。
+タイムラインの投稿内容、フォント、配色テーマ、いいね・リポスト等の操作、APIリクエスト、認証情報、Cookie、ユーザーデータへの介入や変更は行わない。
 
-## Layout model
+## モジュール構成と責務
 
-Xのメイン領域（`main[role="main"]`）の実測クライアント幅を `W`（px）とする。
+| モジュール | 責務 |
+|---|---|
+| `src/content/index.ts` | 合成ルート。依存関係を生成・結合し `LayoutController` を初期化する |
+| `src/content/enabled-setting.ts` | 有効化設定の読み込みと購読（`EnabledSettingSource` インターフェース、`ChromeStorageEnabledSettingSource`、`InMemoryEnabledSettingSource`） |
+| `src/content/document-layout-state.ts` | `html`（`document.documentElement`）へのレイアウト属性（`data-xcuic-enabled`, `data-xcuic-layout`）の付与と消去 |
+| `src/content/layout-controller.ts` | オーケストレーションと DOM 実測（`measureLayoutContext`）、ライフサイクル管理 |
+| `src/content/observers.ts` | 再タグ付けの契機監視（`RefreshObserver` による URL 変化・DOM 変更の検知とデバウンス） |
+| `src/content/selectors.ts` | セレクタとクラス名の情報源（`SELECTORS`, `CLASS_NAMES`）、構造要素のタグ付け |
+| `src/content/content-targets.ts` | ツイート内要素・メディア・記事・引用ツイートの特定とタグ付け（`tagContentTargets`） |
+| `src/shared/layout-metrics.ts` | モード判定の純関数（`resolveLayoutMode`）とレイアウト定数定義 |
+| `src/shared/settings.ts` | 設定キー（`SETTING_KEY_ENABLED`）と既定値（`DEFAULT_ENABLED`） |
 
-- 定数定義:
-  - `MIN_ACTIVE_WIDTH_PX = 990px`: ワイドレイアウトを発動する最小メイン幅
-  - `SIDEBAR_WIDTH_PX = 350px`: 右サイドバー幅（X標準の幅を固定維持）
-  - `GAP_PX = 30px`: カラム間グリッド余白
-  - `MIN_TIMELINE_WIDTH_PX = 600px`: タイムライン最小幅
-  - `MAX_TIMELINE_WIDTH_PX = 900px`: タイムライン最大幅（これ以上は1行の視線移動が長くなり可読性を損なうためクランプ）
+## レイアウト判定モデル (`resolveLayoutMode`)
 
-### 計算式 (`calculateLayoutMetrics`)
+表示モードの決定は `resolveLayoutMode(viewportWidthPx, options)` により行う。DOM操作を行わず `"wide" | "compact"` を返す純関数である。
 
-1. **Compact 判定 (`W < 990px`)**:
-   - `compact = true`
-   - `timelineWidthPx = round(clamp(W, 0, 600))`
-   - `sidebarWidthPx = 350px`
-   - `canvasWidthPx = W`
-   - 幅の強制上書きを解除し、X標準のレスポンシブ動作に委ねる。
+### 入力パラメータ
+- `viewportWidthPx`: ビューポート幅（`window.innerWidth`、フォールバック `document.documentElement.clientWidth`）
+- `options.headerWidthPx`: ヘッダーの実測幅（`header[role="banner"]` の `offsetWidth`）
+- `options.sidebarWidthPx`: サイドバーの実測幅（`div[data-testid="sidebarColumn"]` の `offsetWidth`）
+- `options.hasSidebar`: サイドバーの有無（要素が存在し `offsetWidth > 0` かつ `display !== "none"`）
+- `options.currentlyWide`: 現在のモードが wide かどうか
 
-2. **Wide レイアウト (`W >= 990px`)**:
-   - `availableTimeline = W - SIDEBAR_WIDTH_PX - GAP_PX` (すなわち `W - 380px`)
-   - `timelineWidthPx = round(clamp(availableTimeline, 600px, 900px))`
-   - `sidebarWidthPx = 350px`
-   - `canvasWidthPx = timelineWidthPx + SIDEBAR_WIDTH_PX + GAP_PX` (980px〜1280px)
-   - `compact = false`
+### 定数定義 (`src/shared/layout-metrics.ts`)
+- `FALLBACK_SIDEBAR_WIDTH_PX = 350`: サイドバー幅が未計測または取得不能だった場合のフォールバック幅（px）
+- `GAP_PX = 30`: タイムラインとサイドバー間の余白（px）
+- `PADDING_PX = 20`: ヘッダー外側のパディング（px）
+- `COMPACT_ENTER_TIMELINE_PX = 590`: wide 状態から compact 状態へと縮小移行するタイムライン利用可能幅のしきい値（px）
+- `COMPACT_EXIT_TIMELINE_PX = 610`: compact 状態から wide 状態へと拡大移行するタイムライン利用可能幅のしきい値（px）
 
-## 左右パネル維持と中央拡大の仕組み
+### 計算ロジック
+1. **安全なビューポート幅の導出**:
+   `safeWidth = Number.isFinite(viewportWidthPx) && viewportWidthPx > 0 ? viewportWidthPx : 0`
+2. **減算幅の算出**:
+   - ヘッダー幅: `headerWidthPx` が正数なら `headerWidthPx + PADDING_PX`、未計測なら `0`
+   - サイドバー幅: `sidebarWidthPx` が正数ならその値、未計測なら `FALLBACK_SIDEBAR_WIDTH_PX`
+   - 利用可能タイムライン幅:
+     `availableTimelinePx = safeWidth - headerWidth - (hasSidebar ? sidebarWidth + GAP_PX : 0)`
+3. **ヒステリシスによるモード決定**:
+   境界値付近でのチャタリング（画面のちらつき・振動）を防ぐため、現在の状態に応じたしきい値で判定する。
+   - 現在 wide の場合: `availableTimelinePx < COMPACT_ENTER_TIMELINE_PX`（590px）で compact、それ以外は wide を維持
+   - 現在 compact の場合: `availableTimelinePx < COMPACT_EXIT_TIMELINE_PX`（610px）で compact、610px 以上で wide へ移行
 
-Xの3カラム構成のうち、左右の役割を維持しつつ中央の閲覧スペースのみを拡大する。
+## CSS による幅配分とスタイリング (`content.css`)
 
-```
-+----------------+-------------------------------------+------------------+
-| 左ナビゲーション |          中央タイムライン            |    右サイドバー   |
-| (header)       |       (primaryColumn)               |  (sidebarColumn) |
-|                |                                     |                  |
-| X標準動作を維持 | 600px 〜 最大900px までレスポンシブ拡張 | 350px 固定維持   |
-| (幅変更なし)    | ツイート・写真・動画・記事が追従    | (縮小・消去なし)  |
-+----------------+-------------------------------------+------------------+
-```
+JavaScript は `document.documentElement` に `data-xcuic-enabled` と `data-xcuic-layout` 属性を設定するのみであり、CSS 変数の動的操作やインラインスタイル操作は行わない。カラム幅の実際の配分はすべて `content.css` の flex 規則が担う。
 
 1. **左ナビゲーション (`header[role="banner"]`)**:
-   - 拡張側のCSS・スクリプトで幅や配置を一切変更しない。
-   - X標準の折りたたみ（アイコンのみ）/展開（ラベル付き）動作が自然に保たれる。
-2. **右サイドバー (`div[data-testid="sidebarColumn"]`, `.xcuic-sidebar-column`)**:
-   - `width: 350px !important; max-width: 350px !important; flex-shrink: 0 !important;` を指定。
-   - 検索ボックス、トレンド、おすすめユーザー、サブスクリプション等のウィジェットが崩れず安定表示される。
-3. **中央タイムライン (`div[data-testid="primaryColumn"]`, `.xcuic-primary-column`)**:
-   - `max-width: var(--xcuic-timeline-width, 850px) !important;`
-   - メインラッパー（`main[role="main"] > div`, `.xcuic-main-wrapper`）の `max-width` 制限を解除（`var(--xcuic-canvas-width)` まで開放）し、中央カラムが広がった分の横幅を自然に吸収する。
-   - `flex-grow: 1` などのFlexbox競合を引き起こすプロパティを排除し、X本来の安定した幅計算を活用。
-4. **メディアおよびコンテンツ要素の追従**:
-   - 写真（`tweetPhoto`）、動画（`videoPlayer`, `videoComponent`）、カード（`card.wrapper`）、引用ツイート（`xcuic-quote-tweet`）の幅を `100% !important; max-width: 100% !important;` に統一。
-   - 長文記事（`article`, `note`, `xcuic-status-detail`）もタイムライン幅に合わせて拡大し、余計な余白や見切れを防止する。
+   - 幅は `--xcuic-header-width`（通常時 300px、画面幅 1280px 以下ではメディアクエリにより 68px）。
+   - `flex: 0 0 var(--xcuic-header-width, 300px)` により左端に固定する。
+2. **メイン領域 (`main[role="main"]`)**:
+   - `flex: 1 1 0%`、`min-width: 0` により、残りの横幅を活用する。
+3. **メインラッパー (`.xcuic-main-wrapper`)**:
+   - wide モード時: `display: flex`、`gap: var(--xcuic-gap, 30px)`、`padding-right: 20px` を指定し、右パネルのはみ出しを防ぎながら水平配置する。
+4. **中央タイムライン (`div[data-testid="primaryColumn"]`, `.xcuic-primary-column`)**:
+   - wide モード時: `flex: 1 1 0%`、`width: auto`、`max-width: none` を指定。左ナビと右サイドバーの間の空きスペースに合わせて伸縮する。
+   - compact モード時: `max-width: 600px` を指定し、標準レイアウトの幅を維持する。
+5. **右サイドバー (`div[data-testid="sidebarColumn"]`, `.xcuic-sidebar-column`)**:
+   - wide モード時: `flex: 0 0 var(--xcuic-sidebar-width, 350px)`、幅 350px を固定維持する。
+   - 画面幅 1000px 以下のメディアクエリ: サイドバーを `display: none` で非表示にし、タイムラインを全幅（`width: 100%`）にして衝突を防ぐ。
+6. **ツイートおよび内部コンテンツの追従**:
+   - タグ付けは `classList` のみで行い、インラインスタイルは書き込まない。
+   - ツイート行コンテナ（`.xcuic-tweet-row`）とアバター列（`.xcuic-avatar-column`）で上部揃え（`align-items: flex-start`, `align-self: flex-start`）を維持し、アバターサイズを 40px に固定する。
+   - ツイート本文・右列（`.xcuic-tweet-content`）、写真・動画・カード（`.xcuic-media-wrapper`, `.xcuic-media`）を全幅化（`width: 100%`）する。
+   - 単一メディアには `max-height: min(70vh, 750px)` を指定し、縦長画像のはみ出しを防ぐ。
+   - 長文記事（`.xcuic-article`, `.xcuic-status-detail`）は `max-width: 950px` に広げる。
 
-## 画面の痙攣（レイアウトスラッシング・リサイズループ）防止機構
+## リサイズ・DOM変更の監視機構 (`observers.ts`, `layout-controller.ts`)
 
-子要素のスタイル変更とObserver監視が相互に影響しあって発生する「画面の痙攣（高速な振動・チャタリング）」を完全に遮断するための3重の防止機構を備えています。
+レイアウトスラッシングや再描画ループを防ぐため、監視と処理の間引きを行う。
 
-1. **ルート要素監視とリファレンス分離**:
-   - リサイズ監視の起点を、子要素の伸縮によって影響を受ける `mainRegion` ではなく、ビューポート基準の `document.documentElement` に設定。
-   - スタイル変更が監視イベントを再帰的に再発火させる無限ループを原理的に防止。
-2. **ヒステリシス帯（不感帯）による境界チャタリング防止**:
-   - `wide` への突入判定閾値（1010px）と `compact` への脱出閾値（970px）に 40px のヒステリシスを設ける。
-   - 境界値付近でスクロールバーの出現・消失によって `clientWidth` が約15px変動しても、状態が高速で行き来して痙攣する現象を数学的に防止。
-3. **10px単位の量子化ステップ & デバウンス間引き**:
-   - タイムライン幅の計算値を 10px 単位で丸め、微小な変動によるCSS変数更新を遮断。
-   - `RefreshObserver`（MutationObserver）に 200ms のデバウンスと重要ノード（`primaryColumn` / `cellInnerDiv` 等）のフィルタリングを導入し、React Native for Web の仮想スクロール再描画との干渉を完全排除。
+1. **ビューポートリサイズ監視 (`ResizeObserver`)**:
+   - `document.documentElement` を監視対象とし、子要素の伸縮によるイベント再帰発火を防ぐ。
+   - コールバックは `requestAnimationFrame`（rAF）で間引き、同一フレーム内の重複更新を抑止する。
+2. **DOM変更監視 (`RefreshObserver`)**:
+   - `document.body`（または `document.documentElement`）を対象に `childList` および `subtree` を監視する。
+   - URL変化時: 50ms のデバウンス後に rAF で `refresh()` を実行。
+   - 重要ノード変更時: `SELECTORS.SIGNIFICANT_MUTATION` に合致する要素（`primaryColumn`, `sidebarColumn`, `cellInnerDiv`, `main`）の追加・削除が含まれる場合、200ms のデバウンス後に rAF で `refresh()` を実行。
 
 ## Runtime flow
 
-1. **初期化**:
-   - `chrome.storage.local` から `enabled` 設定（デフォルト: `true`）を読み込む。
-   - `chrome.storage.onChanged` リスナーを登録し、ポップアップからの変更を検知。
-2. **メイン領域の検出**:
-   - `findMainRegion()` により `main[role="main"]` を取得。
-   - 見つからない場合は `primaryColumn` や `tweet` の祖先からフォールバック探索。
-3. **リサイズ監視**:
-   - `ResizeObserver` を `mainRegion` にアタッチ。幅の変化に応じて `calculateLayoutMetrics` を実行。
-   - 計算されたピクセル値を `document.documentElement` のCSS変数（`--xcuic-timeline-width`, `--xcuic-sidebar-width`, `--xcuic-canvas-width`）へ反映。
-   - `html[data-xcuic-layout="wide"|"compact"]` 属性を更新。
-4. **DOM変更の追従**:
-   - `MutationObserver` (`RefreshObserver`) によりノード追加・削除を検知。
-   - `requestAnimationFrame` でスロットリングしながら `tagLayoutTargets()` を呼び出し、新規読み込みされたツイートやメディアへクラスを付与。
-5. **クリーンアップ**:
-   - ポップアップでOFFにされた場合、Observerを即時停止・切断。
-   - `clearTargetClasses()` により付与した全クラスをDOMから消去。
-   - `html` の属性およびCSS変数を削除し、完全なX標準表示に復元。
+1. **初期化 (`bootstrap`)**:
+   - `ChromeStorageEnabledSettingSource`（またはテスト用の `InMemoryEnabledSettingSource`）から有効化設定を読み込む。
+   - 設定変更のリスナーを登録する。
+2. **有効化 (`enable`)**:
+   - リサイズ監視と DOM 監視を開始する。
+   - メイン領域を検出し、構造要素およびツイート要素をタグ付けする。
+   - 初期実測とモード判定を行い、`data-xcuic-enabled="true"` と初回の `data-xcuic-layout` 属性を同一の同期処理で `document.documentElement` に付与する（enabled のみが付いた中間フレームによるレイアウトずれを防止）。
+3. **リサイズ・更新追従**:
+   - リサイズや DOM 変更を検知すると、間引き・rAF 経由で再実測と判定を行う。
+   - 前回とモードが変化した場合のみ `data-xcuic-layout` 属性を更新する。
+4. **無効化 (`disable`)**:
+   - 監視（`ResizeObserver`, `RefreshObserver`）を停止・切断する。
+   - `clearTargetClasses()` により DOM から付与クラスをすべて消去する。
+   - `documentLayoutState.clear()` により `html` の属性（`data-xcuic-enabled`, `data-xcuic-layout`）を削除し、標準表示に復元する。
 
 ## Failure behavior (フェイルクローズ・フェイルセーフ)
 
-- `mainRegion` または `primaryColumn` を特定できない画面（ログイン画面、認証フロー、一部のフルスクリーンダイアログ）では、クラス付与やCSS変数設定を行わず、標準表示を維持する。
-- 幅測定で `NaN`、負数、無限大が発生した場合は `safeWidth = 0`, `compact = true` として扱い、レイアウト崩れを防ぐ。
+- `mainRegion` を特定できない画面（ログイン画面、認証フロー等）では、クラス付与を行わず何もしない（既存アタッチがある場合はデタッチしてクラスを消去する）。
+- ビューポート幅が不正（`NaN`、負数、無限大）な場合は `safeWidth = 0` として計算し、`compact` モードを返してレイアウト崩れを防ぐ。
