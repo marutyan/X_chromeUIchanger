@@ -1,5 +1,7 @@
 # X Responsive Layout (X_chromeUIchanger)
 
+> **このリポジトリはアーカイブ済みです。** ChatGPT・Gemini・X向けの3つの拡張は [chrome_UI_changer](https://github.com/marutyan/chrome_UI_changer) に統合され、以後はそちらで保守します。
+
 X（旧Twitter）デスクトップ版のタイムラインを横長ディスプレイや高解像度画面に適応させ、閲覧領域を快適に広げるChrome拡張機能です。
 
 ## 主な機能 (Features)
